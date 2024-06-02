@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:sfa_utils/sfa_utils.dart';
 
 import 'sfa_utils_platform_interface.dart';
@@ -131,6 +132,23 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
       }
     } catch (e, s) {
       return false;
+    }
+  }
+
+  @override
+  Future<String> hasPermissionLocation() async {
+    try {
+      var value = await methodChannel.invokeMethod("hasLocationPermission", "");
+
+      if (value != null && value is Map<dynamic, dynamic>) {
+        debugPrint("channel >> hasPermissionLocation - ${jsonEncode(value)}");
+
+        return value["data"].toString();
+      } else {
+        return "";
+      }
+    } catch (e) {
+      return "";
     }
   }
 }

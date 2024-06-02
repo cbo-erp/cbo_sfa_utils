@@ -45,6 +45,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler {
             "setMobileIMEI" -> setMobileIMEI(result, call)
             "getOsDetail" -> getOsDetails(result, call)
             "getLocation" -> getLocation(result, call)
+            "hasLocationPermission" -> result.notImplemented()
             else -> result.notImplemented()
         }
     }

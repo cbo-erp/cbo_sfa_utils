@@ -40,6 +40,9 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
   Future<Map<String, dynamic>> getOsDetail() async {
     throw UnimplementedError('getOsDetail() has not been implemented.');
   }
+  Future<String> hasPermissionLocation() async {
+    throw UnimplementedError('hasPermissionLocation() has not been implemented.');
+  }
 
   Future<DataResponse<Map<String, dynamic>>> getLocation() async {
     throw UnimplementedError('getLocation() has not been implemented.');
