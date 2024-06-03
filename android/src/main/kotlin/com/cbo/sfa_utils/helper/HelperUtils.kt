@@ -3,27 +3,16 @@ package com.cbo.sfa.utils
 import android.Manifest
 import android.content.*
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.provider.Settings
 import android.telephony.TelephonyManager
-import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
-import androidx.core.app.ActivityCompat.startActivityForResult
-import androidx.core.app.ActivityCompat.startIntentSenderForResult
 
-import com.google.android.gms.common.api.ResolvableApiException
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.LocationSettingsRequest
-import com.google.android.gms.location.LocationSettingsStatusCodes
-import io.flutter.plugin.common.MethodCall
-import io.flutter.plugin.common.MethodChannel
 import java.lang.reflect.Field
 
 
-class CboUtils {
+class HelperUtils {
     fun getDeviceUniqueId(context: Context): String {
         val telephonyManager =
             ContextWrapper(context).getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager?
@@ -110,7 +99,8 @@ class CboUtils {
         val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
         return batteryManager.getIntProperty(property)
     }
-//
+
+
 //    fun launchTurnByTurn(context: Context, result: MethodChannel.Result, arguments: MethodCall) {
 //        val mLat: Double = arguments.argument<Double>("mLat").toString().toDouble()
 //        val mLon: Double = arguments.argument<Double>("mLon").toString().toDouble()

@@ -3,9 +3,9 @@ package com.cbo.sfa_utils
 import android.content.Context
 import android.location.Location
 import android.os.Build
-import com.cbo.sfa.utils.CboUtils
-import com.cbo.sfa.utils.GenericCallback
-import com.cbo.sfa.utils.PermissionUtils
+import com.cbo.sfa.utils.HelperUtils
+import com.cbo.sfa_utils.helper.UtilsCallback
+import com.cbo.sfa.utils.LocationHelper
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -57,9 +57,9 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler {
             return
         }
 
-        PermissionUtils.getCurrentLocation(
+        LocationHelper.getCurrentLocation(
             context = applicationContext!!,
-            callback = object : GenericCallback<Location?> {
+            callback = object : UtilsCallback<Location?> {
                 override fun onReceive(data: Location?) {
 
                     if (data != null) {
@@ -99,7 +99,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun getBatteryPercentage(result: Result, arguments: MethodCall) {
 
-        val percentage = CboUtils().getBatteryLevel(applicationContext!!)
+        val percentage = HelperUtils().getBatteryLevel(applicationContext!!)
         result.success(successResult("$percentage"))
 
 //        var mURL = arguments.argument<String>("url")
@@ -119,26 +119,26 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun getMobileIMEI(result: Result, arguments: MethodCall) {
 //        var mURL = arguments.argument<String>("url")
-        val uniqueId = CboUtils().getDeviceUniqueId(applicationContext!!)
+        val uniqueId = HelperUtils().getDeviceUniqueId(applicationContext!!)
         result.success(successResult(resultData = uniqueId))
 
     }
 
     private fun setMobileIMEI(result: Result, arguments: MethodCall) {
         val uniqueToken = arguments.argument<String>("uniqueToken") as String
-        val status = CboUtils().setDeviceUniqueId(applicationContext!!, uniqueId = uniqueToken)
+        val status = HelperUtils().setDeviceUniqueId(applicationContext!!, uniqueId = uniqueToken)
         result.success(successResult(resultData = if (status) "success" else "Failure"))
 
     }
 
     private fun getOsDetails(result: Result, arguments: MethodCall) {
 //        var mURL = arguments.argument<String>("url")
-        val osDetails = CboUtils().getOsDetails(applicationContext!!)
+        val osDetails = HelperUtils().getOsDetails(applicationContext!!)
         result.success(successResult(osDetails))
     }
 
 
-    fun successResult(resultData: Any): HashMap<String, Any> {
+    private fun successResult(resultData: Any): HashMap<String, Any> {
         val result = HashMap<String, Any>()
         result["status"] = "1"
         result["msg"] = "success"
@@ -146,7 +146,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler {
         return result
     }
 
-    fun failureResult(message: String): HashMap<String, String> {
+    private fun failureResult(message: String): HashMap<String, String> {
         val result = HashMap<String, String>()
         result["status"] = "0"
         result["data"] = ""

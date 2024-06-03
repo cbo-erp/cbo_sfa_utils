@@ -8,12 +8,13 @@ import android.location.LocationManager
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.cbo.sfa_utils.helper.UtilsCallback
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.gms.tasks.Task
 
-object PermissionUtils {
+object LocationHelper {
 
     fun checkAccessFineLocationGranted(context: Context): Boolean {
         return ContextCompat.checkSelfPermission(
@@ -32,7 +33,7 @@ object PermissionUtils {
     }
 
 
-    fun getCurrentLocation(context: Context, callback: GenericCallback<Location?>) {
+    fun getCurrentLocation(context: Context, callback: UtilsCallback<Location?>) {
 
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
         val cancellationTokenSource = CancellationTokenSource()
