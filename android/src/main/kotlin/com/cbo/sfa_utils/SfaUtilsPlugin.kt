@@ -1,18 +1,20 @@
 package com.cbo.sfa_utils
 
 import android.content.Context
+import android.content.Intent
 import android.location.Location
 import android.os.Build
+import android.provider.Settings
 import com.cbo.sfa.utils.HelperUtils
-import com.cbo.sfa_utils.helper.UtilsCallback
 import com.cbo.sfa.utils.LocationHelper
-
+import com.cbo.sfa_utils.helper.UtilsCallback
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.StandardMethodCodec
+
 
 /** SfaUtilsPlugin */
 class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler {
@@ -45,6 +47,11 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler {
             "setMobileIMEI" -> setMobileIMEI(result, call)
             "getOsDetail" -> getOsDetails(result, call)
             "getLocation" -> getLocation(result, call)
+            // return true in ios
+            "timeIsAuto" -> timeIsAuto(result, call)
+            "timeZoneIsAuto" -> timeZoneIsAuto(result, call)
+            "openSetting" -> openSettings(result, call)
+
             "hasLocationPermission" -> result.notImplemented()
             else -> result.notImplemented()
         }
@@ -135,6 +142,33 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler {
 //        var mURL = arguments.argument<String>("url")
         val osDetails = HelperUtils().getOsDetails(applicationContext!!)
         result.success(successResult(osDetails))
+    }
+
+    private fun timeIsAuto(result: Result, arguments: MethodCall) {
+
+        val autoTimeVal = Settings.Global.getInt(
+            this.applicationContext!!.contentResolver,
+            Settings.Global.AUTO_TIME,
+            0
+        )
+
+        result.success(autoTimeVal == 1);
+    }
+
+    private fun timeZoneIsAuto(result: Result, arguments: MethodCall) {
+        val autoTimeZone = Settings.Global.getInt(
+            this.applicationContext!!.contentResolver,
+            Settings.Global.AUTO_TIME_ZONE,
+            0
+        )
+        result.success(autoTimeZone == 1)
+    }
+
+    private fun openSettings(result: Result, arguments: MethodCall) {
+        val intent = Intent(Settings.ACTION_DATE_SETTINGS)
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        applicationContext!!.startActivity(intent)
+        result.success(true)
     }
 
 
