@@ -151,4 +151,34 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
       return "";
     }
   }
+
+  @override
+  Future<bool> timeIsAuto() async {
+    try {
+      var timeIsAuto = await methodChannel.invokeMethod("timeIsAuto", "");
+      return timeIsAuto == 1;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> openSetting() async {
+    try {
+      await methodChannel.invokeMethod("openSetting", "");
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> timeZoneIsAuto() async {
+    try {
+      var timeZoneIsAuto = await methodChannel.invokeMethod("timeZoneIsAuto", "");
+      return timeIsAuto == 1;
+    } catch (e) {
+      return false;
+    }
+  }
 }

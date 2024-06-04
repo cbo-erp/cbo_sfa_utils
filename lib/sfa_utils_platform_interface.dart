@@ -44,6 +44,16 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
     throw UnimplementedError('hasPermissionLocation() has not been implemented.');
   }
 
+  Future<bool> timeIsAuto() async {
+    throw UnimplementedError('timeIsAuto() has not been implemented.');
+  }
+  Future<bool> openSetting() async {
+    throw UnimplementedError('openSetting() has not been implemented.');
+  }
+  Future<bool> timeZoneIsAuto() async {
+    throw UnimplementedError('timeZoneIsAuto() has not been implemented.');
+  }
+
   Future<DataResponse<Map<String, dynamic>>> getLocation() async {
     throw UnimplementedError('getLocation() has not been implemented.');
   }
