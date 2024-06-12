@@ -155,8 +155,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<bool> timeIsAuto() async {
     try {
-      var timeIsAuto = await methodChannel.invokeMethod("timeIsAuto", "");
-      return timeIsAuto == 1;
+      return await methodChannel.invokeMethod("timeIsAuto", "");
     } catch (e) {
       return false;
     }
@@ -175,8 +174,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<bool> timeZoneIsAuto() async {
     try {
-      var timeZoneIsAuto = await methodChannel.invokeMethod("timeZoneIsAuto", "");
-      return timeIsAuto == 1;
+      return await methodChannel.invokeMethod("timeZoneIsAuto", "");
     } catch (e) {
       return false;
     }
