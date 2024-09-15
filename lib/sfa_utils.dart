@@ -35,4 +35,12 @@ class DataResponse<T> {
       msg: errorMsg,
     );
   }
+
+  factory DataResponse.fromMap(Map<dynamic, dynamic> map) {
+    return DataResponse(
+      isSuccess: int.tryParse("${map["status"]}") == 1,
+      data: map["data"],
+      msg: map["msg"],
+    );
+  }
 }

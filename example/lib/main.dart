@@ -61,16 +61,27 @@ class _MyAppState extends State<MyApp> {
         body: Center(
           child: Text('Battery level: $batterLevel'),
         ),
-        floatingActionButton: FloatingActionButton.small(
+        floatingActionButton: FloatingActionButton(
+          // onPressed: _onPressedRequestGPS,
           onPressed: _onPressed,
-          child: const Icon(Icons.refresh),
+          child: const Icon(Icons.add_location_outlined),
         ),
       ),
     );
   }
 
   // Callback function for Text Button Event this should be a class member
-  void _onPressed() async {
+  Future<void> _onPressedRequestGPS() async {
+    // BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
+
+    SfaUtilsPlatform.instance.requestGPS().then((value) {
+      print("value1===> ${value.isSuccess}");
+      print("value2===> ${value.msg}");
+      print("value3===> ${value.data}");
+    });
+  }
+
+  Future<void> _onPressed() async {
     var receivePort = ReceivePort();
     // Here runMyIsolate methos should be a top level function
     await Isolate.spawn<RootIsolateToken?>(

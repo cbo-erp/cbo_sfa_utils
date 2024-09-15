@@ -181,11 +181,19 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   }
 
   @override
-  Future<Map<String, dynamic>> requestGPS() async {
+  Future<DataResponse<String>> requestGPS() async {
     try {
-      return await methodChannel.invokeMethod("requestGPS", {});
+      final value = await methodChannel.invokeMethod("requestGPS", {});
+      if (value != null && value is Map<dynamic, dynamic>) {
+        return DataResponse.fromMap(value);
+      } else {
+        return DataResponse.failure("GPS Permission denied");
+      }
     } catch (e) {
-      return {"status": "0", "msg": "Technical Error $e"};
+      return DataResponse.failure(
+        "GPS Permission denied",
+        data: e.toString(),
+      );
     }
   }
 }

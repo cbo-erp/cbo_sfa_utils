@@ -218,6 +218,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         applicationContext = binding.activity
+        applicationActivity = binding.activity
         binding.addActivityResultListener { requestCode, resultCode, data ->
             if (requestCode == locationIntentCode) {
                 if (resultCode == Activity.RESULT_OK) {

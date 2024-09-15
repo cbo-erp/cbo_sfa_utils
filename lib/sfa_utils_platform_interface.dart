@@ -62,7 +62,7 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
     throw UnimplementedError('getLocation() has not been implemented.');
   }
 
-  Future<Map<String, dynamic>> requestGPS() async {
+  Future<DataResponse<String>> requestGPS() async {
     throw UnimplementedError('requestGPS() has not been implemented.');
   }
 }
