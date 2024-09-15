@@ -1,5 +1,5 @@
 package com.cbo.sfa_utils.helper
 
-interface UtilsCallback<T> {
-    fun onReceive(data: T?)
+fun interface UtilsCallback<T> {
+    fun onReceive(data: T)
 }

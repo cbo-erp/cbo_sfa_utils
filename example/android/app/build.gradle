@@ -25,7 +25,8 @@ if (flutterVersionName == null) {
 android {
     namespace "com.cbo.sfa_utils_example"
     compileSdk flutter.compileSdkVersion
-    ndkVersion flutter.ndkVersion
+    ndkVersion = "26.1.10909125"
+//    ndkVersion flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11

@@ -1,14 +1,17 @@
 package com.cbo.sfa_utils
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.location.Location
 import android.os.Build
 import android.provider.Settings
 import com.cbo.sfa.utils.HelperUtils
-import com.cbo.sfa.utils.LocationHelper
+import com.cbo.sfa_utils.helper.LocationHelper
 import com.cbo.sfa_utils.helper.UtilsCallback
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
@@ -17,10 +20,13 @@ import io.flutter.plugin.common.StandardMethodCodec
 
 
 /** SfaUtilsPlugin */
-class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler {
+class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private var applicationContext: Context? = null
+    private var applicationActivity: Activity? = null
     private var methodChannel: MethodChannel? = null
+    private var methodResult: Result? = null
+    private val locationIntentCode = 1999
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         this.applicationContext = binding.applicationContext
@@ -35,18 +41,21 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        applicationContext = null
         methodChannel!!.setMethodCallHandler(null)
         methodChannel = null
+        applicationContext = null
+        applicationActivity = null
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
+        methodResult = result
         when (call.method) {
             "getBatteryPercentage" -> getBatteryPercentage(result, call)
             "getMobileIMEI" -> getMobileIMEI(result, call)
             "setMobileIMEI" -> setMobileIMEI(result, call)
             "getOsDetail" -> getOsDetails(result, call)
             "getLocation" -> getLocation(result, call)
+            "requestGPS" -> requestGPS(result, call)
             // return true in ios
             "timeIsAuto" -> timeIsAuto(result, call)
             "timeZoneIsAuto" -> timeZoneIsAuto(result, call)
@@ -100,6 +109,25 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler {
                     }
                 }
             },
+        )
+    }
+
+
+    private fun requestGPS(channelResult: Result, arguments: MethodCall) {
+
+        if (applicationActivity == null) {
+            channelResult.success(failureResult("Context is null"))
+            return
+        }
+
+        LocationHelper.requestGps(
+            applicationActivity!!, locationIntentCode, callback = { data ->
+                if (data) {
+                    channelResult.success(successResult(resultData = ""))
+                } else {
+                    channelResult.success(failureResult(message = "User denied the request"))
+                }
+            }
         )
     }
 
@@ -186,6 +214,33 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler {
         result["data"] = ""
         result["msg"] = message
         return result
+    }
+
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        applicationContext = binding.activity
+        binding.addActivityResultListener { requestCode, resultCode, data ->
+            if (requestCode == locationIntentCode) {
+                if (resultCode == Activity.RESULT_OK) {
+                    methodResult?.success(successResult("SUCCESS"))
+                } else {
+                    methodResult?.success(failureResult("Request Cancelled"))
+                }
+                return@addActivityResultListener true
+            }
+            false
+        }
+    }
+
+    override fun onDetachedFromActivityForConfigChanges() {
+        applicationContext = null
+    }
+
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        applicationContext = binding.activity
+    }
+
+    override fun onDetachedFromActivity() {
+        applicationContext = null
     }
 
 

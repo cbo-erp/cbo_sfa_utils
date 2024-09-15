@@ -1,35 +1,80 @@
-package com.cbo.sfa.utils
+package com.cbo.sfa_utils.helper
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.location.Location
-import android.location.LocationManager
 import android.util.Log
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import com.cbo.sfa_utils.helper.UtilsCallback
+import androidx.core.app.ActivityCompat.startIntentSenderForResult
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationSettingsRequest
+import com.google.android.gms.location.LocationSettingsStatusCodes
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.gms.tasks.Task
 
 object LocationHelper {
 
-    fun checkAccessFineLocationGranted(context: Context): Boolean {
-        return ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-    }
+//    fun checkAccessFineLocationGranted(context: Context): Boolean {
+//        return ContextCompat.checkSelfPermission(
+//            context, Manifest.permission.ACCESS_FINE_LOCATION
+//        ) == PackageManager.PERMISSION_GRANTED
+//    }
+//
+//    fun isLocationEnabled(context: Context): Boolean {
+//        val gfgLocationManager: LocationManager =
+//            context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+//        //return gfgLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || gfgLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+//        return gfgLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || gfgLocationManager.isProviderEnabled(
+//            LocationManager.NETWORK_PROVIDER
+//        )
+//    }
 
-    fun isLocationEnabled(context: Context): Boolean {
-        val gfgLocationManager: LocationManager =
-            context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        //return gfgLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || gfgLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-        return gfgLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || gfgLocationManager.isProviderEnabled(
-            LocationManager.NETWORK_PROVIDER
-        )
+    fun requestGps(activity: Activity, locationRequestCode: Int, callback: UtilsCallback<Boolean>) {
+        val mLocationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+            .setWaitForAccurateLocation(false)
+            .setMinUpdateIntervalMillis(500)
+            .setMaxUpdateDelayMillis(1000).build();
+
+        val builder = LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest)
+        val mSettingsClient = LocationServices.getSettingsClient(activity)
+
+        mSettingsClient.checkLocationSettings(builder.build()).addOnFailureListener { e ->
+            if (e is ResolvableApiException) {
+                when (e.statusCode) {
+                    LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> {
+                        try {
+//                            e.startResolutionForResult(context, locationRequestCode)
+                            startIntentSenderForResult(
+                                activity,
+                                e.resolution.intentSender,
+                                locationRequestCode,
+                                null,
+                                0,
+                                0,
+                                0,
+                                null
+                            )
+                        } catch (sie: IntentSender.SendIntentException) {
+                            Log.e("LocationHelper", "Error in requestGps: $sie")
+                            callback.onReceive(false)
+                        }
+                    }
+
+                    LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
+                        callback.onReceive(false)
+                    }
+                }
+            } else {
+                Log.e("LocationHelper", "Error in requestGps: $e")
+                callback.onReceive(false)
+            }
+        }
     }
 
 
@@ -40,20 +85,16 @@ object LocationHelper {
 
 
         if (ActivityCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-            && ActivityCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_COARSE_LOCATION
+                context, Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             return
         }
 
         val currentLocationTask: Task<Location> = fusedLocationClient.getCurrentLocation(
-            Priority.PRIORITY_HIGH_ACCURACY,
-            cancellationTokenSource.token
+            Priority.PRIORITY_HIGH_ACCURACY, cancellationTokenSource.token
         )
 
         var isSubmitted = false
@@ -74,11 +115,5 @@ object LocationHelper {
             Log.d("TAG", "getCurrentLocation() result: $result")
 
         }
-
-//        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-//            callback.onReceive(location)
-//            // Got last known location. In some rare situations this can be null.
-//        }
-
     }
 }

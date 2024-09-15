@@ -13,7 +13,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<int> getBatteryPercentage() async {
     try {
-      var value = await methodChannel.invokeMethod("getBatteryPercentage", "");
+      var value = await methodChannel.invokeMethod("getBatteryPercentage", {});
       if (value != null && value is Map<dynamic, dynamic>) {
         return int.tryParse("${value["data"]}") ?? 0;
       } else {
@@ -91,7 +91,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<Map<String, dynamic>> getOsDetail() async {
     try {
-      var value = await methodChannel.invokeMethod("getOsDetail", "");
+      var value = await methodChannel.invokeMethod("getOsDetail", {});
       if (value != null && value is Map<dynamic, dynamic>) {
         if (int.parse("${value["status"]}") == 1) {
           final jsonString = jsonEncode(value["data"]);
@@ -107,7 +107,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<String> getMobileIMEI() async {
     try {
-      final value = await methodChannel.invokeMethod("getMobileIMEI", "");
+      final value = await methodChannel.invokeMethod("getMobileIMEI", {});
       if (value != null && value is Map<dynamic, dynamic>) {
         return "${value["data"]}";
       } else {
@@ -138,7 +138,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<String> hasPermissionLocation() async {
     try {
-      var value = await methodChannel.invokeMethod("hasLocationPermission", "");
+      var value = await methodChannel.invokeMethod("hasLocationPermission", {});
 
       if (value != null && value is Map<dynamic, dynamic>) {
         debugPrint("channel >> hasPermissionLocation - ${jsonEncode(value)}");
@@ -155,7 +155,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<bool> timeIsAuto() async {
     try {
-      return await methodChannel.invokeMethod("timeIsAuto", "");
+      return await methodChannel.invokeMethod("timeIsAuto", {});
     } catch (e) {
       return false;
     }
@@ -164,7 +164,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<bool> openSetting() async {
     try {
-      await methodChannel.invokeMethod("openSetting", "");
+      await methodChannel.invokeMethod("openSetting", {});
       return true;
     } catch (e) {
       return false;
@@ -174,9 +174,18 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<bool> timeZoneIsAuto() async {
     try {
-      return await methodChannel.invokeMethod("timeZoneIsAuto", "");
+      return await methodChannel.invokeMethod("timeZoneIsAuto", {});
     } catch (e) {
       return false;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> requestGPS() async {
+    try {
+      return await methodChannel.invokeMethod("requestGPS", {});
+    } catch (e) {
+      return {"status": "0", "msg": "Technical Error $e"};
     }
   }
 }
