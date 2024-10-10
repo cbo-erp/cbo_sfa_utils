@@ -56,15 +56,15 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('SFA PLUGIN EXAMPLE'),
+          title: const Text('SFA PLUGIN EXAMPLEs'),
         ),
         body: Center(
           child: Text('Battery level: $batterLevel'),
         ),
         floatingActionButton: FloatingActionButton(
-          // onPressed: _onPressedRequestGPS,
-          onPressed: _onPressed,
-          child: const Icon(Icons.add_location_outlined),
+          onPressed: _onPressedRequestGPS,
+          // onPressed: _onPressed,
+          child: const Icon(Icons.add_circle_outline),
         ),
       ),
     );
@@ -82,6 +82,8 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _onPressed() async {
+
+
     var receivePort = ReceivePort();
     // Here runMyIsolate methos should be a top level function
     await Isolate.spawn<RootIsolateToken?>(
