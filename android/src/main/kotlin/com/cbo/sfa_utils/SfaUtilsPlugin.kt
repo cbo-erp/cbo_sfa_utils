@@ -120,12 +120,16 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             return
         }
 
+        var resultSubmitted = false
         LocationHelper.requestGps(
             applicationActivity!!, locationIntentCode, callback = { data ->
-                if (data) {
-                    channelResult.success(successResult(resultData = ""))
-                } else {
-                    channelResult.success(failureResult(message = "User denied the request"))
+                if (!resultSubmitted) {
+                    resultSubmitted = true
+                    if (data) {
+                        channelResult.success(successResult(resultData = ""))
+                    } else {
+                        channelResult.success(failureResult(message = "User denied the request"))
+                    }
                 }
             }
         )
