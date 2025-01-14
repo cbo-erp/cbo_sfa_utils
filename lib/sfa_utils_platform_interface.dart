@@ -50,6 +50,10 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
     throw UnimplementedError('timeIsAuto() has not been implemented.');
   }
 
+  Future<bool> developerModeOn() async {
+    throw UnimplementedError('timeIsAuto() has not been implemented.');
+  }
+
   Future<bool> openSetting() async {
     throw UnimplementedError('openSetting() has not been implemented.');
   }
