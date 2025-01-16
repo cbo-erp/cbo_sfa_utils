@@ -162,6 +162,15 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   }
 
   @override
+  Future<bool> developerModeOn() async {
+    try {
+      return await methodChannel.invokeMethod("developerModeOn", {});
+    } catch (e) {
+      return false;
+    }
+  }
+
+  @override
   Future<bool> openSetting() async {
     try {
       await methodChannel.invokeMethod("openSetting", {});

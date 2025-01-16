@@ -17,6 +17,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.StandardMethodCodec
+import android.util.Log
 
 
 /** SfaUtilsPlugin */
@@ -59,6 +60,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             "requestGPS" -> requestGPS(result, call)
             // return true in ios
             "timeIsAuto" -> timeIsAuto(result, call)
+            "developerModeOn" -> isDeveloperModeOn(result,call)
             "timeZoneIsAuto" -> timeZoneIsAuto(result, call)
             "openSetting" -> openSettings(result, call)
             "hasLocationPermission" -> result.notImplemented()
@@ -114,6 +116,8 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
 
     private fun requestGPS(result: Result, arguments: MethodCall) {
+
+        Log.d("ChannelUtilsPlugin", "requestGPS: Function called")
 
         if (applicationActivity == null) {
             result.success(failureResult("Context is null"))
@@ -205,6 +209,18 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             0
         )
         result.success(autoTimeZone == 1)
+    }
+
+
+    private fun isDeveloperModeOn(result: Result, arguments: MethodCall) {
+        methodResult = result
+
+        val developerMode = Settings.Global.getInt(
+            this.applicationContext!!.contentResolver,
+            Settings.Global.DEVELOPMENT_SETTINGS_ENABLED,
+            0
+        )
+        result.success(developerMode == 1)
     }
 
     private fun openSettings(result: Result, arguments: MethodCall) {
