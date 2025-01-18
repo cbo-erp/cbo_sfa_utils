@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -155,7 +156,9 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<bool> timeIsAuto() async {
     try {
-      return await methodChannel.invokeMethod("timeIsAuto", {});
+      return Platform.isAndroid
+          ? await methodChannel.invokeMethod("timeIsAuto", {})
+          : true;
     } catch (e) {
       return false;
     }
@@ -164,7 +167,9 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<bool> developerModeOn() async {
     try {
-      return await methodChannel.invokeMethod("developerModeOn", {});
+      return Platform.isAndroid
+          ? await methodChannel.invokeMethod("developerModeOn", {})
+          : false;
     } catch (e) {
       return false;
     }
@@ -183,7 +188,9 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<bool> timeZoneIsAuto() async {
     try {
-      return await methodChannel.invokeMethod("timeZoneIsAuto", {});
+      return Platform.isAndroid
+          ? await methodChannel.invokeMethod("timeZoneIsAuto", {})
+          : false;
     } catch (e) {
       return false;
     }
