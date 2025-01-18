@@ -160,7 +160,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
           ? await methodChannel.invokeMethod("timeIsAuto", {})
           : true;
     } catch (e) {
-      return false;
+      return true;
     }
   }
 
@@ -190,9 +190,9 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
     try {
       return Platform.isAndroid
           ? await methodChannel.invokeMethod("timeZoneIsAuto", {})
-          : false;
+          : true;
     } catch (e) {
-      return false;
+      return true;
     }
   }
 
