@@ -169,9 +169,9 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
     try {
       return Platform.isAndroid
           ? await methodChannel.invokeMethod("developerModeOn", {})
-          : false;
+          : true;
     } catch (e) {
-      return false;
+      return true;
     }
   }
 
