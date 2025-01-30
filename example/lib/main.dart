@@ -12,7 +12,7 @@ void main() {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -82,8 +82,6 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _onPressed() async {
-
-
     var receivePort = ReceivePort();
     // Here runMyIsolate methos should be a top level function
     await Isolate.spawn<RootIsolateToken?>(
