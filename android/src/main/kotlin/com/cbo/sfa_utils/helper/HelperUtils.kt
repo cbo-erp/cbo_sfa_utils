@@ -56,7 +56,7 @@ object HelperUtils {
             "manufacturer" to Build.MANUFACTURER,
             "os_version" to Build.VERSION.RELEASE,
             "device_model" to Build.MODEL,
-//            "sdk_version" to Build.VERSION.SDK_INT.toString(),
+            "sdk_version" to Build.VERSION.SDK_INT.toString(),
 //            "brand" to Build.BRAND
         )
     }
