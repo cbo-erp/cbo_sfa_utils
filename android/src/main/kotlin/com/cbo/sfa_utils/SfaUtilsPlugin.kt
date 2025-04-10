@@ -6,7 +6,7 @@ import android.content.Intent
 import android.location.Location
 import android.os.Build
 import android.provider.Settings
-import com.cbo.sfa.utils.HelperUtils
+import com.cbo.sfa_utils.helper.HelperUtils
 import com.cbo.sfa_utils.helper.LocationHelper
 import com.cbo.sfa_utils.helper.UtilsCallback
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -17,7 +17,6 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.StandardMethodCodec
-import android.util.Log
 
 
 /** SfaUtilsPlugin */
@@ -52,26 +51,34 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     override fun onMethodCall(call: MethodCall, result: Result) {
 
         when (call.method) {
+            "launchTurnByTurn" -> launchTurnByTurn(result, call)
             "getBatteryPercentage" -> getBatteryPercentage(result, call)
             "getMobileIMEI" -> getMobileIMEI(result, call)
             "setMobileIMEI" -> setMobileIMEI(result, call)
             "getOsDetail" -> getOsDetails(result, call)
             "getLocation" -> getLocation(result, call)
             "requestGPS" -> requestGPS(result, call)
-            // return true in ios
-            "timeIsAuto" -> timeIsAuto(result, call)
-            "developerModeOn" -> isDeveloperModeOn(result,call)
+            "timeIsAuto" -> timeIsAuto(result, call) // return true in ios
             "timeZoneIsAuto" -> timeZoneIsAuto(result, call)
             "openSetting" -> openSettings(result, call)
+            "developerModeOn" -> isDeveloperModeOn(result, call)
+            "openFile" -> openFile(result, call)
             "hasLocationPermission" -> result.notImplemented()
             else -> result.notImplemented()
         }
     }
 
+    private fun launchTurnByTurn(result: Result, arguments: MethodCall) {
+        val mLat: Double = arguments.argument<Double>("latitude").toString().toDouble()
+        val mLon: Double = arguments.argument<Double>("longitude").toString().toDouble()
+        HelperUtils.launchTurnByTurn(applicationContext, mLat, mLon)
+        result.success(applicationContext != null)
+    }
+
     private fun getLocation(result: Result, arguments: MethodCall) {
         methodResult = result
         if (applicationContext == null) {
-            result.success(failureResult("Context is null"))
+            result.error("FAILURE", "Context is null", null)
             return
         }
 
@@ -93,18 +100,19 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                             return
                         }
 
-                        val locResult = HashMap<String, Any>()
-                        locResult["latitude"] = data.latitude
-                        locResult["longitude"] = data.longitude
-                        locResult["isMock"] = isMockLocation
-                        locResult["altitude"] = data.altitude
-                        locResult["hasAltitude"] = data.hasAltitude()
-                        locResult["speed"] = data.speed
-                        locResult["hasSpeed"] = data.hasSpeed()
-                        locResult["accuracy"] = data.accuracy
-                        locResult["hasAccuracy"] = data.hasAccuracy()
-
-                        result.success(successResult(locResult))
+                        result.success(
+                            mapOf<String, Any>(
+                                "latitude" to data.latitude,
+                                "longitude" to data.longitude,
+                                "isMock" to false,
+                                "altitude" to data.altitude,
+                                "hasAltitude" to data.hasAltitude(),
+                                "speed" to data.speed,
+                                "hasSpeed" to data.hasSpeed(),
+                                "accuracy" to data.accuracy,
+                                "hasAccuracy" to data.hasAccuracy(),
+                            )
+                        )
 
                     } else {
                         result.error("LOCATION_NOT_FOUND", "Location not found", null)
@@ -117,14 +125,12 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private fun requestGPS(result: Result, arguments: MethodCall) {
 
-        Log.d("ChannelUtilsPlugin", "requestGPS: Function called")
-
         if (applicationActivity == null) {
-            result.success(failureResult("Context is null"))
+            result.error("FAILURE", "Context is null", null)
             return
         }
         if (locationRequestInWIP) {
-            result.success(failureResult("Another request in Progress"))
+            result.error("FAILURE", "Another request in Progress", null)
             return
         }
         locationRequestInWIP = true
@@ -134,9 +140,9 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             applicationActivity!!, locationIntentCode, callback = { data ->
                 locationRequestInWIP = false;
                 if (data) {
-                    methodResult?.success(successResult(resultData = ""))
+                    methodResult?.success(true)
                 } else {
-                    methodResult?.success(failureResult(message = "User denied the request"))
+                    methodResult?.error("PERMISSION_DENIED", "User denied the request", "")
                 }
 
             }
@@ -146,9 +152,8 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private fun getBatteryPercentage(result: Result, arguments: MethodCall) {
         methodResult = result
-
-        val percentage = HelperUtils().getBatteryLevel(applicationContext!!)
-        result.success(successResult("$percentage"))
+        val percentage = HelperUtils.getBatteryLevel(applicationContext!!)
+        result.success(percentage)
 
 //        var mURL = arguments.argument<String>("url")
 //        var _isSubmitted = false
@@ -167,25 +172,22 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private fun getMobileIMEI(result: Result, arguments: MethodCall) {
         methodResult = result
-//        var mURL = arguments.argument<String>("url")
-        val uniqueId = HelperUtils().getDeviceUniqueId(applicationContext!!)
-        result.success(successResult(resultData = uniqueId))
+        val uniqueId = HelperUtils.getDeviceUniqueId(applicationContext!!)
+        result.success(uniqueId)
 
     }
 
     private fun setMobileIMEI(result: Result, arguments: MethodCall) {
         methodResult = result
         val uniqueToken = arguments.argument<String>("uniqueToken") as String
-        val status = HelperUtils().setDeviceUniqueId(applicationContext!!, uniqueId = uniqueToken)
-        result.success(successResult(resultData = if (status) "success" else "Failure"))
-
+        val status = HelperUtils.setDeviceUniqueId(applicationContext!!, uniqueId = uniqueToken)
+        result.success(status)
     }
 
     private fun getOsDetails(result: Result, arguments: MethodCall) {
         methodResult = result
-//        var mURL = arguments.argument<String>("url")
-        val osDetails = HelperUtils().getOsDetails(applicationContext!!)
-        result.success(successResult(osDetails))
+        val osDetails = HelperUtils.getOsDetails(applicationContext!!)
+        result.success(osDetails)
     }
 
     private fun timeIsAuto(result: Result, arguments: MethodCall) {
@@ -211,6 +213,14 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         result.success(autoTimeZone == 1)
     }
 
+    private fun openSettings(result: Result, arguments: MethodCall) {
+        methodResult = result
+        val intent = Intent(Settings.ACTION_DATE_SETTINGS)
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        applicationContext!!.startActivity(intent)
+        result.success(true)
+    }
+
 
     private fun isDeveloperModeOn(result: Result, arguments: MethodCall) {
         methodResult = result
@@ -223,30 +233,17 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         result.success(developerMode == 1)
     }
 
-    private fun openSettings(result: Result, arguments: MethodCall) {
-        methodResult = result
-        val intent = Intent(Settings.ACTION_DATE_SETTINGS)
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        applicationContext!!.startActivity(intent)
-        result.success(true)
+    private fun openFile(result: Result, call: MethodCall) {
+        val context = applicationContext ?: run {
+            result.error("FAILURE", "Application context is null", null)
+            return
+        }
+
+        val filePath = call.argument<String>("filePath")!!
+        val isOpened = HelperUtils.openFile(context, filePath)
+        result.success(isOpened)
     }
 
-
-    private fun successResult(resultData: Any): HashMap<String, Any> {
-        val result = HashMap<String, Any>()
-        result["status"] = "1"
-        result["msg"] = "success"
-        result["data"] = resultData
-        return result
-    }
-
-    private fun failureResult(message: String): HashMap<String, String> {
-        val result = HashMap<String, String>()
-        result["status"] = "0"
-        result["data"] = ""
-        result["msg"] = message
-        return result
-    }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         applicationContext = binding.activity
@@ -256,9 +253,9 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 locationRequestInWIP = false
 
                 if (resultCode == Activity.RESULT_OK) {
-                    methodResult?.success(successResult("SUCCESS"))
+                    methodResult?.success(true)
                 } else {
-                    methodResult?.success(failureResult("Request Cancelled"))
+                    methodResult?.error("PERMISSION_DENIED", "User denied the request", "")
                 }
                 return@addActivityResultListener true
             }

@@ -1,4 +1,7 @@
+import 'dart:ffi';
+
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:sfa_utils/models/os_detail.dart';
 import 'package:sfa_utils/sfa_utils.dart';
 
 import 'sfa_utils_method_channel.dart';
@@ -37,7 +40,7 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
     throw UnimplementedError('setMobileIMEI() has not been implemented.');
   }
 
-  Future<Map<String, dynamic>> getOsDetail() async {
+  Future<DeviceInfo?> getOsDetail() async {
     throw UnimplementedError('getOsDetail() has not been implemented.');
   }
 
@@ -68,5 +71,13 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
 
   Future<DataResponse<String>> requestGPS() async {
     throw UnimplementedError('requestGPS() has not been implemented.');
+  }
+
+  Future<bool> launchTurnByTurn(Double latitude, Double longitude) async {
+    throw UnimplementedError('launchTurnByTurn() has not been implemented.');
+  }
+
+  Future<bool> openFile(String filePath) async {
+    throw UnimplementedError('openFile() has not been implemented.');
   }
 }

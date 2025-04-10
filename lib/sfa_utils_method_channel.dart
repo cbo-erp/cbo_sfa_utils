@@ -1,8 +1,9 @@
-import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:sfa_utils/models/os_detail.dart';
 import 'package:sfa_utils/sfa_utils.dart';
 
 import 'sfa_utils_platform_interface.dart';
@@ -15,8 +16,8 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   Future<int> getBatteryPercentage() async {
     try {
       var value = await methodChannel.invokeMethod("getBatteryPercentage", {});
-      if (value != null && value is Map<dynamic, dynamic>) {
-        return int.tryParse("${value["data"]}") ?? 0;
+      if (value != null) {
+        return int.tryParse("$value") ?? 0;
       } else {
         return 0;
       }
@@ -30,15 +31,8 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   Future<DataResponse<Map<String, dynamic>>> getLocation() async {
     try {
       var value = await methodChannel.invokeMethod("getLocation", {});
-      if (value != null && value is Map<dynamic, dynamic>) {
-        if (int.parse("${value["status"]}") != 1) {
-          return DataResponse.failure(value["msg"] ?? "Failure");
-        }
-
-        final dataValue =
-            value["data"].runtimeType == String ? {} : value["data"];
-
-        Map<String, dynamic> data = Map<String, dynamic>.from(dataValue);
+      if (value != null) {
+        Map<String, dynamic> data = Map<String, dynamic>.from(value);
 
         Map<String, dynamic> map = {
           'latitude': data["latitude"] ?? 0.0,
@@ -90,18 +84,12 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   }
 
   @override
-  Future<Map<String, dynamic>> getOsDetail() async {
+  Future<DeviceInfo> getOsDetail() async {
     try {
       var value = await methodChannel.invokeMethod("getOsDetail", {});
-      if (value != null && value is Map<dynamic, dynamic>) {
-        if (int.parse("${value["status"]}") == 1) {
-          final jsonString = jsonEncode(value["data"]);
-          return Map<String, dynamic>.from(jsonDecode(jsonString));
-        }
-      }
-      return {};
+      return DeviceInfo.fromMap(value);
     } catch (e) {
-      return {};
+      return DeviceInfo.fromMap({});
     }
   }
 
@@ -109,11 +97,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   Future<String> getMobileIMEI() async {
     try {
       final value = await methodChannel.invokeMethod("getMobileIMEI", {});
-      if (value != null && value is Map<dynamic, dynamic>) {
-        return "${value["data"]}";
-      } else {
-        return "";
-      }
+      return value != null ? value.toString() : "";
     } catch (e) {
       return "";
     }
@@ -126,11 +110,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
         "setMobileIMEI",
         {"uniqueToken": imei},
       );
-      if (value != null && value is Map<dynamic, dynamic>) {
-        return value["data"] == 1;
-      } else {
-        return false;
-      }
+      return value != null;
     } catch (e, s) {
       return false;
     }
@@ -140,14 +120,8 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   Future<String> hasPermissionLocation() async {
     try {
       var value = await methodChannel.invokeMethod("hasLocationPermission", {});
-
-      if (value != null && value is Map<dynamic, dynamic>) {
-        debugPrint("channel >> hasPermissionLocation - ${jsonEncode(value)}");
-
-        return value["data"].toString();
-      } else {
-        return "";
-      }
+      debugPrint("channel >> hasPermissionLocation - $value}");
+      return value.toString();
     } catch (e) {
       return "";
     }
@@ -199,17 +173,36 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<DataResponse<String>> requestGPS() async {
     try {
-      final value = await methodChannel.invokeMethod("requestGPS", {});
-      if (value != null && value is Map<dynamic, dynamic>) {
-        return DataResponse.fromMap(value);
-      } else {
-        return DataResponse.failure("GPS Permission denied");
-      }
+      await methodChannel.invokeMethod("requestGPS", {});
+      return DataResponse.success("");
     } catch (e) {
       return DataResponse.failure(
         "GPS Permission denied",
         data: e.toString(),
       );
+    }
+  }
+
+  @override
+  Future<bool> launchTurnByTurn(Double latitude, Double longitude) async {
+    try {
+      await methodChannel.invokeMethod("launchTurnByTurn", {
+        "latitude": latitude,
+        "longitude": longitude,
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> openFile(String filePath) async {
+    try {
+      await methodChannel.invokeMethod("openFile", {"filePath": filePath});
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 }
