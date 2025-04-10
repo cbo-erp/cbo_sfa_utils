@@ -51,7 +51,6 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     override fun onMethodCall(call: MethodCall, result: Result) {
 
         when (call.method) {
-            "launchTurnByTurn" -> launchTurnByTurn(result, call)
             "getBatteryPercentage" -> getBatteryPercentage(result, call)
             "getMobileIMEI" -> getMobileIMEI(result, call)
             "setMobileIMEI" -> setMobileIMEI(result, call)
@@ -66,13 +65,6 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             "hasLocationPermission" -> result.notImplemented()
             else -> result.notImplemented()
         }
-    }
-
-    private fun launchTurnByTurn(result: Result, arguments: MethodCall) {
-        val mLat: Double = arguments.argument<Double>("latitude").toString().toDouble()
-        val mLon: Double = arguments.argument<Double>("longitude").toString().toDouble()
-        HelperUtils.launchTurnByTurn(applicationContext, mLat, mLon)
-        result.success(applicationContext != null)
     }
 
     private fun getLocation(result: Result, arguments: MethodCall) {

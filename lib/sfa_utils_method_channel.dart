@@ -183,18 +183,6 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
     }
   }
 
-  @override
-  Future<bool> launchTurnByTurn(Double latitude, Double longitude) async {
-    try {
-      await methodChannel.invokeMethod("launchTurnByTurn", {
-        "latitude": latitude,
-        "longitude": longitude,
-      });
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
 
   @override
   Future<bool> openFile(String filePath) async {

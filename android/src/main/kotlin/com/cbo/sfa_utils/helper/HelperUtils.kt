@@ -90,14 +90,6 @@ object HelperUtils {
     }
 
 
-    fun launchTurnByTurn(context: Context?, latitude: Double, longitude: Double) {
-//        &mode=l ==> motorized two-wheeler
-        val gmmIntentUri = Uri.parse("google.navigation:q=$latitude,$longitude&mode=l")
-        val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-        mapIntent.setPackage("com.google.android.apps.maps")
-        context?.startActivity(mapIntent)
-    }
-
     fun openFile(context: Context, filePath: String): Boolean {
         if (filePath.isEmpty()) {
             return false

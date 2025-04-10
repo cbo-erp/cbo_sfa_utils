@@ -73,10 +73,6 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
     throw UnimplementedError('requestGPS() has not been implemented.');
   }
 
-  Future<bool> launchTurnByTurn(Double latitude, Double longitude) async {
-    throw UnimplementedError('launchTurnByTurn() has not been implemented.');
-  }
-
   Future<bool> openFile(String filePath) async {
     throw UnimplementedError('openFile() has not been implemented.');
   }
