@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -87,7 +88,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
     try {
       var value = await methodChannel.invokeMethod("getOsDetail", {});
       debugPrint("object $value");
-      return DeviceInfo.fromMap(value);
+      return DeviceInfo.fromMap(jsonDecode(jsonEncode(value)));
     } catch (e) {
       debugPrint("exception $e");
       return DeviceInfo.fromMap({});

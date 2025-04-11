@@ -3,7 +3,7 @@ class DeviceInfo {
   final String manufacturer;
   final String osVersion;
   final String deviceModel;
-  final String sdkVersion;
+  final int sdkVersion;
 
   DeviceInfo({
     required this.platform,
@@ -19,7 +19,7 @@ class DeviceInfo {
       manufacturer: map['manufacturer'] ?? "",
       osVersion: "${map['os_version'] ?? ""}",
       deviceModel: map['device_model'] ?? "",
-      sdkVersion: map['sdk_version'] ?? "",
+      sdkVersion: int.tryParse("${map['sdk_version']}") ?? 0,
     );
   }
 

@@ -53,6 +53,7 @@ public class SfaUtilsPlugin: NSObject, FlutterPlugin {
             "platform": "ios",
             "manufacturer": DeviceInfo.manufacturer,
             "os_version": DeviceInfo.osVersion,
+            "sdk_version" : DeviceInfo.sdkVersion,
             "device_model": DeviceInfo.model
         ]
         

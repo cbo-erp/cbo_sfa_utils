@@ -22,6 +22,8 @@ struct DeviceInfo {
     
     static let osVersion: String = UIDevice.current.systemVersion
     
+    static let sdkVersion: Int = Int(osVersion.split(separator: ".").first ?? "0") ?? 0
+    
     static let model: String = {
         var systemInfo = utsname()
         uname(&systemInfo)
