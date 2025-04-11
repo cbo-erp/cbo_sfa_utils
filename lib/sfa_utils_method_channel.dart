@@ -1,4 +1,3 @@
-import 'dart:ffi';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -87,8 +86,10 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   Future<DeviceInfo> getOsDetail() async {
     try {
       var value = await methodChannel.invokeMethod("getOsDetail", {});
+      debugPrint("object $value");
       return DeviceInfo.fromMap(value);
     } catch (e) {
+      debugPrint("exception $e");
       return DeviceInfo.fromMap({});
     }
   }
@@ -182,7 +183,6 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
       );
     }
   }
-
 
   @override
   Future<bool> openFile(String filePath) async {
