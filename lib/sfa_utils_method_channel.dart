@@ -87,7 +87,6 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   Future<DeviceInfo> getOsDetail() async {
     try {
       var value = await methodChannel.invokeMethod("getOsDetail", {});
-      debugPrint("object $value");
       return DeviceInfo.fromMap(jsonDecode(jsonEncode(value)));
     } catch (e) {
       debugPrint("exception $e");
