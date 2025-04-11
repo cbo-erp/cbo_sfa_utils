@@ -40,7 +40,7 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
     throw UnimplementedError('setMobileIMEI() has not been implemented.');
   }
 
-  Future<DeviceInfo?> getOsDetail() async {
+  Future<DeviceInfo> getOsDetail() async {
     throw UnimplementedError('getOsDetail() has not been implemented.');
   }
 
