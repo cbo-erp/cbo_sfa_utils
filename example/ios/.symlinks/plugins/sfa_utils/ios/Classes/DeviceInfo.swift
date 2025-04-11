@@ -6,14 +6,6 @@
 //
 
 
-//
-//  DeviceInfo.swift
-//  Pods
-//
-//  Created by Shivam Kumar on 10/04/25.
-//
-
-
 import UIKit
 
 struct DeviceInfo {
