@@ -125,20 +125,26 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             result.error("FAILURE", "Another request in Progress", null)
             return
         }
+
+        if (LocationHelper.isLocationEnabled(applicationContext!!)) {
+            result.success(true)
+            return
+        }
+
         locationRequestInWIP = true
-        methodResult = result
 
-        LocationHelper.requestGps(
-            applicationActivity!!, locationIntentCode, callback = { data ->
-                locationRequestInWIP = false;
+        LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { data ->
+            if (locationRequestInWIP) {
+                locationRequestInWIP = false
                 if (data) {
-                    methodResult?.success(true)
+                    result.success(true)
                 } else {
-                    methodResult?.error("PERMISSION_DENIED", "User denied the request", "")
+                    result.error("PERMISSION_DENIED", "User denied the request", "")
                 }
-
             }
-        )
+
+
+        })
     }
 
 
@@ -186,9 +192,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         methodResult = result
 
         val autoTimeVal = Settings.Global.getInt(
-            this.applicationContext!!.contentResolver,
-            Settings.Global.AUTO_TIME,
-            0
+            this.applicationContext!!.contentResolver, Settings.Global.AUTO_TIME, 0
         )
 
         result.success(autoTimeVal == 1);
@@ -198,9 +202,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         methodResult = result
 
         val autoTimeZone = Settings.Global.getInt(
-            this.applicationContext!!.contentResolver,
-            Settings.Global.AUTO_TIME_ZONE,
-            0
+            this.applicationContext!!.contentResolver, Settings.Global.AUTO_TIME_ZONE, 0
         )
         result.success(autoTimeZone == 1)
     }

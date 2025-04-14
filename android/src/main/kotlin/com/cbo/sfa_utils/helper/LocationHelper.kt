@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationManager
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityCompat.startIntentSenderForResult
@@ -26,14 +27,13 @@ object LocationHelper {
 //        ) == PackageManager.PERMISSION_GRANTED
 //    }
 //
-//    fun isLocationEnabled(context: Context): Boolean {
-//        val gfgLocationManager: LocationManager =
-//            context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-//        //return gfgLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || gfgLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-//        return gfgLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || gfgLocationManager.isProviderEnabled(
-//            LocationManager.NETWORK_PROVIDER
-//        )
-//    }
+    fun isLocationEnabled(context: Context): Boolean {
+        val gfgLocationManager: LocationManager =
+            context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        //return gfgLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || gfgLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        return gfgLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || gfgLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+
 
     fun requestGps(activity: Activity, locationRequestCode: Int, callback: UtilsCallback<Boolean>) {
         val mLocationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
