@@ -9,7 +9,7 @@ import Foundation
 import DeviceCheck
 import CoreLocation
 
-class CboUtils{
+class CboUtils {
     
     func getDeviceUniqueId()->String{
         
