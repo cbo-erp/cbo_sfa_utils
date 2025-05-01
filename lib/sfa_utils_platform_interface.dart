@@ -69,6 +69,8 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
     throw UnimplementedError('getLocation() has not been implemented.');
   }
 
+  /// This method must be awaited to avoid potential crashes in the app.
+  /// Failing to await the Future may lead to unhandled exceptions or undefined behavior.
   Future<DataResponse<String>> requestGPS() async {
     throw UnimplementedError('requestGPS() has not been implemented.');
   }
