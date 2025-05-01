@@ -6,6 +6,7 @@ import android.content.Intent
 import android.location.Location
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import com.cbo.sfa_utils.helper.HelperUtils
 import com.cbo.sfa_utils.helper.LocationHelper
 import com.cbo.sfa_utils.helper.UtilsCallback
@@ -115,8 +116,40 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
 
-    private fun requestGPS(result: Result, arguments: MethodCall) {
+//    private fun requestGPS(result: Result, arguments: MethodCall) {
+//
+//        if (applicationActivity == null) {
+//            result.error("FAILURE", "Context is null", null)
+//            return
+//        }
+//        if (locationRequestInWIP) {
+//            result.error("FAILURE", "Another request in Progress", null)
+//            return
+//        }
+//
+//        if (LocationHelper.isLocationEnabled(applicationContext!!)) {
+//            result.success(true)
+//            return
+//        }
+//
+//        locationRequestInWIP = true
+//
+//        LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { data ->
+//            if (locationRequestInWIP) {
+//                locationRequestInWIP = false
+//                if (data) {
+//                    result.success(true)
+//                } else {
+//                    result.error("PERMISSION_DENIED", "User denied the request", "")
+//                }
+//            }
+//
+//
+//        })
+//    }
 
+
+    private fun requestGPS(result: Result, arguments: MethodCall) {
         if (applicationActivity == null) {
             result.error("FAILURE", "Context is null", null)
             return
@@ -132,21 +165,22 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
 
         locationRequestInWIP = true
+        methodResult = result // Assign result here, ensuring it's only used within this flow
 
         LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { data ->
             if (locationRequestInWIP) {
                 locationRequestInWIP = false
-                if (data) {
-                    result.success(true)
-                } else {
-                    result.error("PERMISSION_DENIED", "User denied the request", "")
+                methodResult?.let {
+                    if (data) {
+                        it.success(true)
+                    } else {
+                        it.error("PERMISSION_DENIED", "User denied the request", "")
+                    }
+                    methodResult = null // Nullify methodResult after use
                 }
             }
-
-
         })
     }
-
 
     private fun getBatteryPercentage(result: Result, arguments: MethodCall) {
         methodResult = result
@@ -238,24 +272,28 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         result.success(isOpened)
     }
 
-
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        Log.d("YourPluginTag", "onAttachedToActivity called.")
         applicationContext = binding.activity
         applicationActivity = binding.activity
         binding.addActivityResultListener { requestCode, resultCode, data ->
             if (requestCode == locationIntentCode && locationRequestInWIP) {
                 locationRequestInWIP = false
 
-                if (resultCode == Activity.RESULT_OK) {
-                    methodResult?.success(true)
-                } else {
-                    methodResult?.error("PERMISSION_DENIED", "User denied the request", "")
+                methodResult?.let {
+                    if (resultCode == Activity.RESULT_OK) {
+                        it.success(true)
+                    } else {
+                        it.error("PERMISSION_DENIED", "User denied the request", "")
+                    }
+                    methodResult = null // Ensure methodResult is nullified after submission
                 }
                 return@addActivityResultListener true
             }
             false
         }
     }
+
 
     override fun onDetachedFromActivityForConfigChanges() {
         applicationContext = null
