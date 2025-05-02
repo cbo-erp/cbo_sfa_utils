@@ -132,19 +132,22 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
 
         locationRequestInWIP = true
+        methodResult = result
 
         LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { data ->
             if (locationRequestInWIP) {
                 locationRequestInWIP = false
-                if (data) {
-                    result.success(true)
-                } else {
-                    result.error("PERMISSION_DENIED", "User denied the request", "")
+                methodResult?.let {
+                    if (data) {
+                        it.success(true)
+                    } else {
+                        it.error("PERMISSION_DENIED", "User denied the request", "")
+                    }
+                    methodResult = null // Nullify methodResult after use
                 }
             }
-
-
-        })
+        }
+        )
     }
 
 
@@ -246,12 +249,15 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             if (requestCode == locationIntentCode && locationRequestInWIP) {
                 locationRequestInWIP = false
 
-                if (resultCode == Activity.RESULT_OK) {
-                    methodResult?.success(true)
-                } else {
-                    methodResult?.error("PERMISSION_DENIED", "User denied the request", "")
+                methodResult?.let {
+                    if (resultCode == Activity.RESULT_OK) {
+                        methodResult?.success(true)
+                    } else {
+                        methodResult?.error("PERMISSION_DENIED", "User denied the request", "")
+                    }
+                    methodResult = null // Ensure methodResult is nullified after submission
                 }
-                return@addActivityResultListener true
+                    return@addActivityResultListener true
             }
             false
         }
