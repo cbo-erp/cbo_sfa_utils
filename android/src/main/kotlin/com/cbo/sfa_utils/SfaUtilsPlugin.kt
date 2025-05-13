@@ -27,7 +27,6 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var methodChannel: MethodChannel? = null
     private var methodResult: Result? = null
     private val locationIntentCode = 1999
-    private var locationRequestInWIP = false
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         this.applicationContext = binding.applicationContext
@@ -121,31 +120,22 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             result.error("FAILURE", "Context is null", null)
             return
         }
-        if (locationRequestInWIP) {
-            result.error("FAILURE", "Another request in Progress", null)
-            return
-        }
 
         if (LocationHelper.isLocationEnabled(applicationContext!!)) {
             result.success(true)
             return
         }
-
-        locationRequestInWIP = true
         methodResult = result
-
         LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { data ->
-            if (locationRequestInWIP) {
-                locationRequestInWIP = false
-                methodResult?.let {
-                    if (data) {
-                        it.success(true)
-                    } else {
-                        it.error("PERMISSION_DENIED", "User denied the request", "")
-                    }
-                    methodResult = null // Nullify methodResult after use
+            methodResult?.let {
+                if (data) {
+                    it.success(true)
+                } else {
+                    it.error("PERMISSION_DENIED", "User denied the request", "")
                 }
+                methodResult = null // Nullify methodResult after use
             }
+
         }
         )
     }
@@ -257,7 +247,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     }
                     methodResult = null // Ensure methodResult is nullified after submission
                 }
-                    return@addActivityResultListener true
+                return@addActivityResultListener true
             }
             false
         }

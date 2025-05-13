@@ -10,6 +10,8 @@ import 'sfa_utils_platform_interface.dart';
 
 /// An implementation of [SfaUtilsPlatform] that uses method channels.
 class MethodChannelSfaUtils extends SfaUtilsPlatform {
+  Future<DataResponse<Map<String, dynamic>>>? _ongoingLocationRequest;
+  Future<DataResponse<bool>>? _ongoingRequestGPSRequest;
   final methodChannel = const MethodChannel('com.cbo.sfa.utils.native');
 
   @override
@@ -22,14 +24,41 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
         return 0;
       }
     } catch (e) {
-      print("error $e");
+      debugPrint("error $e");
       return -1;
     }
   }
 
   @override
   Future<DataResponse<Map<String, dynamic>>> getLocation() async {
+    if (_ongoingLocationRequest != null) {
+      // Return the ongoing request if already in progress
+      debugPrint(
+          "Another getLocation request in progress, waiting for completion");
+      return _ongoingLocationRequest!;
+    }
+
+    // Assign the future to prevent duplicate calls
+    debugPrint("Making new getLocation request and waiting for completion");
+    _ongoingLocationRequest = _fetchLocation();
+
+    // Wait for result and reset the future afterward
     try {
+      final result = await _ongoingLocationRequest!;
+      return result;
+    } finally {
+      _ongoingLocationRequest = null;
+    }
+  }
+
+  Future<DataResponse<Map<String, dynamic>>> _fetchLocation() async {
+    try {
+      if (!Platform.isAndroid) {
+        return DataResponse.failure(
+          "Method call not allowed for this platform ${Platform.operatingSystem}",
+        );
+      }
+
       var value = await methodChannel.invokeMethod("getLocation", {});
       if (value != null) {
         Map<String, dynamic> data = Map<String, dynamic>.from(value);
@@ -172,15 +201,39 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   }
 
   @override
-  Future<DataResponse<String>> requestGPS() async {
+  Future<DataResponse<bool>> requestGPS() async {
+    if (_ongoingRequestGPSRequest != null) {
+      // Return the ongoing request if already in progress
+      debugPrint(
+          "Another requestGPS request in progress, waiting for completion");
+      return _ongoingRequestGPSRequest!;
+    }
+
+    // Assign the future to prevent duplicate calls
+    debugPrint("Making new requestGPS request and waiting for completion");
+    _ongoingRequestGPSRequest = _requestGpsPermission();
+
+    // Wait for result and reset the future afterward
     try {
-      await methodChannel.invokeMethod("requestGPS", {});
-      return DataResponse.success("");
+      final result = await _ongoingRequestGPSRequest!;
+      return result;
+    } finally {
+      _ongoingRequestGPSRequest = null;
+    }
+  }
+
+  Future<DataResponse<bool>> _requestGpsPermission() async {
+    try {
+      if (!Platform.isAndroid) {
+        return DataResponse.failure(
+          "Method call not allowed for this platform ${Platform.operatingSystem}",
+        );
+      }
+      var result = await methodChannel.invokeMethod("requestGPS", {});
+      return DataResponse.success(result == true);
     } catch (e) {
-      return DataResponse.failure(
-        "GPS Permission denied",
-        data: e.toString(),
-      );
+      debugPrint("error while requesting GPS, ${e.toString()}");
+      return DataResponse.failure("GPS Permission denied", data: false);
     }
   }
 
