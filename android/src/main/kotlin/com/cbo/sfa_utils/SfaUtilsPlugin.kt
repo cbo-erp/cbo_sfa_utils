@@ -6,6 +6,7 @@ import android.content.Intent
 import android.location.Location
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import com.cbo.sfa_utils.helper.HelperUtils
 import com.cbo.sfa_utils.helper.LocationHelper
 import com.cbo.sfa_utils.helper.UtilsCallback
@@ -136,8 +137,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 methodResult = null // Nullify methodResult after use
             }
 
-        }
-        )
+        })
     }
 
 
@@ -236,8 +236,8 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         applicationContext = binding.activity
         applicationActivity = binding.activity
         binding.addActivityResultListener { requestCode, resultCode, data ->
+            Log.w("TAG", "onActivityResult: $requestCode, $resultCode, $data")
             if (requestCode == locationIntentCode) {
-
                 methodResult?.let {
                     if (resultCode == Activity.RESULT_OK) {
                         methodResult?.success(true)
