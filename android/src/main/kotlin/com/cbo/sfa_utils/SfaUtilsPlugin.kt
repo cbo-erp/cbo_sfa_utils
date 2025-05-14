@@ -128,6 +128,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
         methodResult = result
         LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { data ->
+            Log.w("TAG", "requestGps:  $data")
             methodResult?.let {
                 if (data) {
                     it.success(true)
@@ -236,7 +237,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         applicationContext = binding.activity
         applicationActivity = binding.activity
         binding.addActivityResultListener { requestCode, resultCode, data ->
-            Log.w("TAG", "onActivityResult: $requestCode, $resultCode, $data")
+            Log.w("TAG", "requestGps:onActivityResult: $requestCode, $resultCode, $data")
             if (requestCode == locationIntentCode) {
                 methodResult?.let {
                     if (resultCode == Activity.RESULT_OK) {
