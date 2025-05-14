@@ -34,17 +34,20 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
     if (_ongoingLocationRequest != null) {
       // Return the ongoing request if already in progress
       debugPrint(
-          "Another getLocation request in progress, waiting for completion");
+          "MethodChannelSfaUtils:Another getLocation request in progress, waiting for completion");
       return _ongoingLocationRequest!;
     }
 
     // Assign the future to prevent duplicate calls
-    debugPrint("Making new getLocation request and waiting for completion");
+    debugPrint(
+        "MethodChannelSfaUtils:Making new getLocation request and waiting for completion");
     _ongoingLocationRequest = _fetchLocation();
 
     // Wait for result and reset the future afterward
     try {
       final result = await _ongoingLocationRequest!;
+      debugPrint(
+          "MethodChannelSfaUtils:_ongoingLocationRequest completed");
       return result;
     } finally {
       _ongoingLocationRequest = null;
@@ -205,17 +208,19 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
     if (_ongoingRequestGPSRequest != null) {
       // Return the ongoing request if already in progress
       debugPrint(
-          "Another requestGPS request in progress, waiting for completion");
+          "MethodChannelSfaUtils:Another requestGPS request in progress, waiting for completion");
       return _ongoingRequestGPSRequest!;
     }
 
     // Assign the future to prevent duplicate calls
-    debugPrint("Making new requestGPS request and waiting for completion");
+    debugPrint("MethodChannelSfaUtils:Making new requestGPS request and waiting for completion");
     _ongoingRequestGPSRequest = _requestGpsPermission();
 
     // Wait for result and reset the future afterward
     try {
       final result = await _ongoingRequestGPSRequest!;
+
+      debugPrint("MethodChannelSfaUtils:_ongoingRequestGPSRequest completed");
       return result;
     } finally {
       _ongoingRequestGPSRequest = null;
