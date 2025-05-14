@@ -135,7 +135,6 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     methodResult = null
                 }
             }
-            // ✅ Do nothing if success — let the ActivityResultListener handle that
         })
     }
 
