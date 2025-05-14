@@ -127,17 +127,15 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             return
         }
         methodResult = result
-        LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { data ->
-            Log.w("TAG", "requestGps:  $data")
-            methodResult?.let {
-                if (data) {
-                    it.success(true)
-                } else {
+        // Only pass callback for handling permanent failure case (e.g. SETTINGS_CHANGE_UNAVAILABLE)
+        LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { success ->
+            if (!success) {
+                methodResult?.let {
                     it.error("PERMISSION_DENIED", "User denied the request", "")
+                    methodResult = null
                 }
-                methodResult = null // Nullify methodResult after use
             }
-
+            // ✅ Do nothing if success — let the ActivityResultListener handle that
         })
     }
 
@@ -237,22 +235,31 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         applicationContext = binding.activity
         applicationActivity = binding.activity
         binding.addActivityResultListener { requestCode, resultCode, data ->
+            Log.w(
+                "TAG",
+                "addActivityResultListener $requestCode, resultCode: $resultCode, data: $data"
+            )
+
             if (requestCode == locationIntentCode) {
                 try {
-                    Log.w("TAG", "requestGps:onActivityResult: $requestCode, $resultCode, $data")
-
+                    Log.w("TAG", "addActivityResultListener:locationIntentCode $locationIntentCode")
                     methodResult?.let {
                         if (resultCode == Activity.RESULT_OK) {
                             it.success(true)
                         } else {
-                            it.error("PERMISSION_DENIED", "User denied the request", "")
+                            it.error("PERMISSION_DENIED", "User denied the GPS request", "")
                         }
-                        methodResult = null // Only nullify after successful submission
                     }
                 } catch (e: IllegalStateException) {
-                    Log.w("TAG", "addActivityResultListener: error - ${e.message}")
-                    methodResult = null // Ensure cleanup even if error occurs
+                    Log.e(
+                        "TAG",
+                        "addActivityResultListener:Error: Reply already submitted - ${e.message}"
+                    )
+
+                } finally {
+                    methodResult = null
                 }
+
                 return@addActivityResultListener true
             }
 
