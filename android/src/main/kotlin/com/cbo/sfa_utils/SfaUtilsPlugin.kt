@@ -236,8 +236,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         applicationContext = binding.activity
         applicationActivity = binding.activity
         binding.addActivityResultListener { requestCode, resultCode, data ->
-            if (requestCode == locationIntentCode && locationRequestInWIP) {
-                locationRequestInWIP = false
+            if (requestCode == locationIntentCode) {
 
                 methodResult?.let {
                     if (resultCode == Activity.RESULT_OK) {
