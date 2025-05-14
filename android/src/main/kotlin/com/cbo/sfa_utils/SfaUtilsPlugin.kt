@@ -237,20 +237,28 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         applicationContext = binding.activity
         applicationActivity = binding.activity
         binding.addActivityResultListener { requestCode, resultCode, data ->
-            Log.w("TAG", "requestGps:onActivityResult: $requestCode, $resultCode, $data")
             if (requestCode == locationIntentCode) {
-                methodResult?.let {
-                    if (resultCode == Activity.RESULT_OK) {
-                        methodResult?.success(true)
-                    } else {
-                        methodResult?.error("PERMISSION_DENIED", "User denied the request", "")
+                try {
+                    Log.w("TAG", "requestGps:onActivityResult: $requestCode, $resultCode, $data")
+
+                    methodResult?.let {
+                        if (resultCode == Activity.RESULT_OK) {
+                            it.success(true)
+                        } else {
+                            it.error("PERMISSION_DENIED", "User denied the request", "")
+                        }
+                        methodResult = null // Only nullify after successful submission
                     }
-                    methodResult = null // Ensure methodResult is nullified after submission
+                } catch (e: IllegalStateException) {
+                    Log.w("TAG", "addActivityResultListener: error - ${e.message}")
+                    methodResult = null // Ensure cleanup even if error occurs
                 }
                 return@addActivityResultListener true
             }
-            false
+
+            return@addActivityResultListener false
         }
+
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
