@@ -190,6 +190,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
       await methodChannel.invokeMethod("openFile", {"filePath": filePath});
       return true;
     } catch (e) {
+      debugPrint("openFile exception $e");
       return false;
     }
   }

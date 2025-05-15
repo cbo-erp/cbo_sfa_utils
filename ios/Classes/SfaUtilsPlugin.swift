@@ -2,8 +2,10 @@ import Flutter
 import CoreLocation
 import UIKit
 
-public class SfaUtilsPlugin: NSObject, FlutterPlugin {
+public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionControllerDelegate {
     
+    private var documentInteractionController: UIDocumentInteractionController?
+
     public static func register(with registrar: FlutterPluginRegistrar) {
         let taskQueue = registrar.messenger().makeBackgroundTaskQueue?()
         
@@ -37,6 +39,9 @@ public class SfaUtilsPlugin: NSObject, FlutterPlugin {
             
         case "hasLocationPermission":
             hasLocationPermission(methodCall: call, flutterResult: result)
+
+        case "openFile":
+            openFileIOS(methodCall: call, flutterResult: result)
             
         case "getLocation":
             result(FlutterMethodNotImplemented)
@@ -47,6 +52,42 @@ public class SfaUtilsPlugin: NSObject, FlutterPlugin {
     }
     
     // MARK: - Native Method Implementations
+    
+    private func openFileIOS(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
+
+        guard let args = methodCall.arguments as? [String: Any],
+              let filePath = args["filePath"] as? String else {
+            flutterResult(FlutterError(code: "INVALID_ARGUMENTS", message: "File path not provided", details: nil))
+            return
+        }
+        
+        let fileURL = URL(fileURLWithPath: filePath)
+        if !FileManager.default.fileExists(atPath: filePath) {
+            flutterResult(FlutterError(code: "FILE_NOT_FOUND", message: "File does not exist at path: \(filePath)", details: nil))
+            return
+        }
+        
+        DispatchQueue.main.async {
+            self.documentInteractionController = UIDocumentInteractionController(url: fileURL)
+            self.documentInteractionController?.delegate = self
+            if let rootViewController = UIApplication.shared.keyWindow?.rootViewController {
+                let success = self.documentInteractionController?.presentPreview(animated: true) ?? false
+                if success {
+                    flutterResult(true)
+                } else {
+                    flutterResult(FlutterError(code: "UNABLE_TO_OPEN_FILE", message: "Unable to open file", details: nil))
+                }
+            } else {
+                flutterResult(FlutterError(code: "NO_ROOT_VIEW_CONTROLLER", message: "No root view controller found", details: nil))
+            }
+        }
+    }
+    
+    // MARK: - UIDocumentInteractionControllerDelegate
+    
+    public func documentInteractionControllerViewControllerForPreview(_ controller: UIDocumentInteractionController) -> UIViewController {
+        return UIApplication.shared.keyWindow?.rootViewController ?? UIViewController()
+    }
     
     private func getOsDetail(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
         let osDetails: [String: Any] = [
