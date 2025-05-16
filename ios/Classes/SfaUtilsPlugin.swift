@@ -4,7 +4,7 @@ import UIKit
 
 public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionControllerDelegate {
     
-    private var documentInteractionController: UIDocumentInteractionController?
+//    private var documentInteractionController: UIDocumentInteractionController?
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let taskQueue = registrar.messenger().makeBackgroundTaskQueue?()
@@ -68,10 +68,11 @@ public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionContr
         }
         
         DispatchQueue.main.async {
-            self.documentInteractionController = UIDocumentInteractionController(url: fileURL)
-            self.documentInteractionController?.delegate = self
+            let documentInteractionController = UIDocumentInteractionController(url: fileURL)
+            documentInteractionController.delegate = self
+
             if let rootViewController = UIApplication.shared.keyWindow?.rootViewController {
-                let success = self.documentInteractionController?.presentPreview(animated: true) ?? false
+                let success = documentInteractionController.presentPreview(animated: true)
                 if success {
                     flutterResult(true)
                 } else {
