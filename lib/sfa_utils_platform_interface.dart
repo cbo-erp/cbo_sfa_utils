@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:sfa_utils/models/os_detail.dart';
 import 'package:sfa_utils/sfa_utils.dart';
