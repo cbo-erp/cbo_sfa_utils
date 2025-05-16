@@ -22,7 +22,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
         return 0;
       }
     } catch (e) {
-      // print("error $e");
+      print("error $e");
       return -1;
     }
   }
