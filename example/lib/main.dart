@@ -1,9 +1,7 @@
-import 'dart:isolate';
-
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:flutter/services.dart';
+// import 'package:flutter/services.dart';
 import 'package:sfa_utils/sfa_utils.dart';
 import 'package:sfa_utils/sfa_utils_platform_interface.dart';
 
@@ -28,14 +26,14 @@ class _MyAppState extends State<MyApp> {
     initPlatformState();
   }
 
-  Future<void> _isolateMain(RootIsolateToken rootIsolateToken) async {
-    // Register the background isolate with the root isolate.
-    BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
+  // Future<void> _isolateMain(RootIsolateToken rootIsolateToken) async {
+  //   // Register the background isolate with the root isolate.
+  //   BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
 
-    SfaUtilsPlatform.instance
-        .getBatteryPercentage()
-        .then((value) => print("value===> $value"));
-  }
+  //   SfaUtilsPlatform.instance
+  //       .getBatteryPercentage()
+  //       .then((value) => print("value===> $value"));
+  // }
 
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
@@ -75,32 +73,28 @@ class _MyAppState extends State<MyApp> {
     // BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
 
     SfaUtilsPlatform.instance.requestGPS().then((value) {
-      print("value1===> ${value.isSuccess}");
-      print("value2===> ${value.msg}");
-      print("value3===> ${value.data}");
+      debugPrint("value1===> ${value.isSuccess}");
     });
   }
 
-  Future<void> _onPressed() async {
-
-
-    var receivePort = ReceivePort();
-    // Here runMyIsolate methos should be a top level function
-    await Isolate.spawn<RootIsolateToken?>(
-        runMyIsolate, RootIsolateToken.instance);
-    print(await receivePort.first);
-  }
+  // Future<void> _onPressed() async {
+  //   var receivePort = ReceivePort();
+  //   // Here runMyIsolate methos should be a top level function
+  //   await Isolate.spawn<RootIsolateToken?>(
+  //       runMyIsolate, RootIsolateToken.instance);
+  //   print(await receivePort.first);
+  // }
 }
 
 // We declare a top level function here for an isolated callback function
-void runMyIsolate(RootIsolateToken? args) {
-  print("In runMyIsolate ");
-  if (args == null) {
-    return;
-  }
-  BackgroundIsolateBinaryMessenger.ensureInitialized(args);
-  SfaUtilsPlatform.instance
-      .getBatteryPercentage()
-      .then((value) => print("value===> $value"));
-  // Isolate.exit(sendPort, args);
-}
+// void runMyIsolate(RootIsolateToken? args) {
+//   print("In runMyIsolate ");
+//   if (args == null) {
+//     return;
+//   }
+//   BackgroundIsolateBinaryMessenger.ensureInitialized(args);
+//   SfaUtilsPlatform.instance
+//       .getBatteryPercentage()
+//       .then((value) => print("value===> $value"));
+//   // Isolate.exit(sendPort, args);
+// }
