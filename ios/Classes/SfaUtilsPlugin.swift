@@ -4,7 +4,6 @@ import UIKit
 
 public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionControllerDelegate {
     
-//    private var documentInteractionController: UIDocumentInteractionController?
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let taskQueue = registrar.messenger().makeBackgroundTaskQueue?()
@@ -51,7 +50,6 @@ public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionContr
         }
     }
     
-    // MARK: - Native Method Implementations
     
     private func openFileIOS(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
 
@@ -76,10 +74,10 @@ public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionContr
                 if success {
                     flutterResult(true)
                 } else {
-                    flutterResult(FlutterError(code: "UNABLE_TO_OPEN_FILE", message: "Unable to open file", details: nil))
+                    flutterResult(FlutterError(code: "FILE_OPEN_FAILURE", message: "Unable to open file", details: nil))
                 }
             } else {
-                flutterResult(FlutterError(code: "NO_ROOT_VIEW_CONTROLLER", message: "No root view controller found", details: nil))
+                flutterResult(FlutterError(code: "FILE_OPEN_FAILURE", message: "No root view controller found", details: nil))
             }
         }
     }
