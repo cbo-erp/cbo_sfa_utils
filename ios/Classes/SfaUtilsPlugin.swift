@@ -40,7 +40,7 @@ public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionContr
             hasLocationPermission(methodCall: call, flutterResult: result)
 
         case "openFile":
-            openFileIOS(methodCall: call, flutterResult: result)
+            openFile(methodCall: call, flutterResult: result)
             
         case "getLocation":
             result(FlutterMethodNotImplemented)
@@ -51,17 +51,17 @@ public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionContr
     }
     
     
-    private func openFileIOS(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
+    private func openFile(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
 
         guard let args = methodCall.arguments as? [String: Any],
               let filePath = args["filePath"] as? String else {
-            flutterResult(FlutterError(code: "INVALID_ARGUMENTS", message: "File path not provided", details: nil))
+            flutterResult(FlutterError(code: "FILE_OPEN_FAILURE", message: "File path not provided", details: nil))
             return
         }
         
         let fileURL = URL(fileURLWithPath: filePath)
         if !FileManager.default.fileExists(atPath: filePath) {
-            flutterResult(FlutterError(code: "FILE_NOT_FOUND", message: "File does not exist at path: \(filePath)", details: nil))
+            flutterResult(FlutterError(code: "FILE_OPEN_FAILURE", message: "File does not exist at path: \(filePath)", details: nil))
             return
         }
         

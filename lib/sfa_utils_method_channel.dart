@@ -90,7 +90,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
       } else {
         return DataResponse.failure("GPS Permission denied");
       }
-    } on PlatformException catch (e) {
+    } on PlatformException catch (e,s) {
       switch (e.code) {
         case "LOCATION_NOT_FOUND":
         case "FAKE_GPS_DETECTED":
@@ -109,7 +109,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
           // Handle other platform exceptions
           break;
       }
-      return DataResponse.failure("Platform Error ${e.code}");
+      return DataResponse.failure("Platform Error ${e.code}, $s");
     } catch (e) {
       return DataResponse.failure("Technical Error ${e.toString()}");
     }
