@@ -90,7 +90,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
       } else {
         return DataResponse.failure("GPS Permission denied");
       }
-    } on PlatformException catch (e, stacktrace) {
+    } on PlatformException catch (e) {
       switch (e.code) {
         case "LOCATION_NOT_FOUND":
         case "FAKE_GPS_DETECTED":
@@ -144,7 +144,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
         {"uniqueToken": imei},
       );
       return value != null;
-    } catch (e, s) {
+    } catch (e) {
       return false;
     }
   }
@@ -248,6 +248,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
       await methodChannel.invokeMethod("openFile", {"filePath": filePath});
       return true;
     } catch (e) {
+      debugPrint("openFile exception $e");
       return false;
     }
   }

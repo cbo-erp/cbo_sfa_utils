@@ -129,7 +129,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             return
         }
 
-        Log.e("TAG","Calling REQUEST_GPS")
+        Log.e("TAG","+Calling REQUEST_GPS")
         methodResults[SfaMethods.REQUEST_GPS] = result
         // Only pass callback for handling permanent failure case (e.g. SETTINGS_CHANGE_UNAVAILABLE)
         LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { success ->
@@ -226,12 +226,12 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         binding.addActivityResultListener { requestCode, resultCode, data ->
             Log.w(
                 "TAG",
-                "addActivityResultListener $requestCode, resultCode: $resultCode, data: $data"
+                "+addActivityResultListener $requestCode, resultCode: $resultCode, data: $data"
             )
 
             if (requestCode == locationIntentCode) {
                 try {
-                    Log.w("TAG", "addActivityResultListener:locationIntentCode $locationIntentCode")
+                    Log.w("TAG", "+addActivityResultListener:locationIntentCode $locationIntentCode")
                     methodResults[SfaMethods.REQUEST_GPS]?.let {
                         if (resultCode == Activity.RESULT_OK) {
                             it.success(true)
@@ -242,7 +242,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 } catch (e: IllegalStateException) {
                     Log.e(
                         "TAG",
-                        "addActivityResultListener:Error: Reply already submitted - ${e.message}"
+                        "+addActivityResultListener:Error: Reply already submitted - ${e.message}"
                     )
 
                 } finally {
