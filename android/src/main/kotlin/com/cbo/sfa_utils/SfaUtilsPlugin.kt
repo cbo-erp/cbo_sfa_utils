@@ -118,7 +118,6 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
 
     private fun requestGPS(arguments: MethodCall, result: Result) {
-        methodResults[SfaMethods.REQUEST_GPS] = result
 
         if (applicationActivity == null) {
             result.error("FAILURE", "Context is null", null)
@@ -129,6 +128,9 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             result.success(true)
             return
         }
+
+        Log.e("TAG","Calling REQUEST_GPS")
+        methodResults[SfaMethods.REQUEST_GPS] = result
         // Only pass callback for handling permanent failure case (e.g. SETTINGS_CHANGE_UNAVAILABLE)
         LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { success ->
             if (!success) {
