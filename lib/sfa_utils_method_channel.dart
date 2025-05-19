@@ -237,7 +237,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
       var result = await methodChannel.invokeMethod("requestGPS", {});
       return DataResponse.success(result == true);
     } catch (e) {
-      debugPrint("error while requesting GPS, ${e.toString()}");
+      debugPrint("error while requesting GPS >>>> ${e.toString()}");
       return DataResponse.failure("GPS Permission denied", data: false);
     }
   }
