@@ -18,6 +18,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.StandardMethodCodec
+import kotlin.collections.set
 
 
 /** SfaUtilsPlugin */
@@ -26,7 +27,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var applicationContext: Context? = null
     private var applicationActivity: Activity? = null
     private var methodChannel: MethodChannel? = null
-    private var methodResult: Result? = null
+    private var methodResults = mutableMapOf<String, Result>()
     private val locationIntentCode = 1999
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -49,30 +50,29 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
-        this.methodResult = result
         when (call.method) {
-            "getBatteryPercentage" -> getBatteryPercentage(call)
-            "getMobileIMEI" -> getMobileIMEI(call)
-            "setMobileIMEI" -> setMobileIMEI(call)
-            "getOsDetail" -> getOsDetails(call)
-            "getLocation" -> getLocation(call)
-            "requestGPS" -> requestGPS(call)
-            "timeIsAuto" -> timeIsAuto(call) // return true in ios
-            "timeZoneIsAuto" -> timeZoneIsAuto(call)
-            "openSetting" -> openSettings(call)
-            "developerModeOn" -> isDeveloperModeOn(call)
-            "openFile" -> openFile(call)
-            "hasLocationPermission" -> result.notImplemented()
+            SfaMethods.BATTERY_PERCENTAGE -> getBatteryPercentage(call, result)
+            SfaMethods.GET_IMEI -> getMobileIMEI(call, result)
+            SfaMethods.SET_IMEI -> setMobileIMEI(call, result)
+            SfaMethods.OS_DETAIL -> getOsDetails(call, result)
+            SfaMethods.GET_LOCATION -> getLocation(call, result)
+            SfaMethods.REQUEST_GPS -> requestGPS(call, result)
+            SfaMethods.TIME_AUTO -> timeIsAuto(call, result)
+            SfaMethods.TIMEZONE_AUTO -> timeZoneIsAuto(call, result)
+            SfaMethods.OPEN_SETTINGS -> openSettings(call, result)
+            SfaMethods.DEVELOPER_MODE -> isDeveloperModeOn(call, result)
+            SfaMethods.OPEN_FILE -> openFile(call, result)
+            SfaMethods.LOCATION_PERMISSION -> result.notImplemented()
             else -> {
                 result.notImplemented()
-                methodResult = null
             }
         }
     }
 
-    private fun getLocation(arguments: MethodCall) {
+
+    private fun getLocation(arguments: MethodCall, result: Result) {
         if (applicationContext == null) {
-            methodResult?.error("FAILURE", "Context is null", null)
+            result.error("FAILURE", "Context is null", null)
             return
         }
 
@@ -90,11 +90,11 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                         }
 
                         if (isMockLocation) {
-                            methodResult?.error("FAKE_GPS_DETECTED", "Fake GPS detected", null)
+                            result.error("FAKE_GPS_DETECTED", "Fake GPS detected", null)
                             return
                         }
 
-                        methodResult?.success(
+                        result.success(
                             mapOf<String, Any>(
                                 "latitude" to data.latitude,
                                 "longitude" to data.longitude,
@@ -109,7 +109,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                         )
 
                     } else {
-                        methodResult?.error("LOCATION_NOT_FOUND", "Location not found", null)
+                        result.error("LOCATION_NOT_FOUND", "Location not found", null)
                     }
                 }
             },
@@ -117,31 +117,30 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
 
-    private fun requestGPS(arguments: MethodCall) {
+    private fun requestGPS(arguments: MethodCall, result: Result) {
+        methodResults[SfaMethods.REQUEST_GPS] = result
+
         if (applicationActivity == null) {
-            methodResult?.error("FAILURE", "Context is null", null)
+            result.error("FAILURE", "Context is null", null)
             return
         }
 
         if (LocationHelper.isLocationEnabled(applicationContext!!)) {
-            methodResult?.success(true)
+            result.success(true)
             return
         }
         // Only pass callback for handling permanent failure case (e.g. SETTINGS_CHANGE_UNAVAILABLE)
         LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { success ->
             if (!success) {
-                methodResult?.let {
-                    it.error("PERMISSION_DENIED", "User denied the request", "")
-                    methodResult = null
-                }
+                result.error("PERMISSION_DENIED", "User denied the request", "")
             }
         })
     }
 
 
-    private fun getBatteryPercentage(arguments: MethodCall) {
+    private fun getBatteryPercentage(arguments: MethodCall, result: Result) {
         val percentage = HelperUtils.getBatteryLevel(applicationContext!!)
-        methodResult?.success(percentage)
+        result.success(percentage)
 
 //        var mURL = arguments.argument<String>("url")
 //        var _isSubmitted = false
@@ -158,64 +157,64 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     }
 
-    private fun getMobileIMEI(arguments: MethodCall) {
+    private fun getMobileIMEI(arguments: MethodCall, result: Result) {
         val uniqueId = HelperUtils.getDeviceUniqueId(applicationContext!!)
-        methodResult?.success(uniqueId)
+        result.success(uniqueId)
 
     }
 
-    private fun setMobileIMEI(arguments: MethodCall) {
+    private fun setMobileIMEI(arguments: MethodCall, result: Result) {
         val uniqueToken = arguments.argument<String>("uniqueToken") as String
         val status = HelperUtils.setDeviceUniqueId(applicationContext!!, uniqueId = uniqueToken)
-        methodResult?.success(status)
+        result.success(status)
     }
 
-    private fun getOsDetails(arguments: MethodCall) {
+    private fun getOsDetails(arguments: MethodCall, result: Result) {
         val osDetails = HelperUtils.getOsDetails(applicationContext!!)
-        methodResult?.success(osDetails)
+        result.success(osDetails)
     }
 
-    private fun timeIsAuto(arguments: MethodCall) {
+    private fun timeIsAuto(arguments: MethodCall, result: Result) {
         val autoTimeVal = Settings.Global.getInt(
             this.applicationContext!!.contentResolver, Settings.Global.AUTO_TIME, 0
         )
-        methodResult?.success(autoTimeVal == 1);
+        result.success(autoTimeVal == 1);
     }
 
-    private fun timeZoneIsAuto(arguments: MethodCall) {
+    private fun timeZoneIsAuto(arguments: MethodCall, result: Result) {
 
         val autoTimeZone = Settings.Global.getInt(
             this.applicationContext!!.contentResolver, Settings.Global.AUTO_TIME_ZONE, 0
         )
-        methodResult?.success(autoTimeZone == 1)
+        result.success(autoTimeZone == 1)
     }
 
-    private fun openSettings(arguments: MethodCall) {
+    private fun openSettings(arguments: MethodCall, result: Result) {
         val intent = Intent(Settings.ACTION_DATE_SETTINGS)
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         applicationContext!!.startActivity(intent)
-        methodResult?.success(true)
+        result.success(true)
     }
 
-    private fun isDeveloperModeOn(arguments: MethodCall) {
+    private fun isDeveloperModeOn(arguments: MethodCall, result: Result) {
 
         val developerMode = Settings.Global.getInt(
             this.applicationContext!!.contentResolver,
             Settings.Global.DEVELOPMENT_SETTINGS_ENABLED,
             0
         )
-        methodResult?.success(developerMode == 1)
+        result.success(developerMode == 1)
     }
 
-    private fun openFile(call: MethodCall) {
+    private fun openFile(arguments: MethodCall, result: Result) {
         val context = applicationContext ?: run {
-            methodResult?.error("FAILURE", "Application context is null", null)
+            result.error("FAILURE", "Application context is null", null)
             return
         }
 
-        val filePath = call.argument<String>("filePath")!!
+        val filePath = arguments.argument<String>("filePath")!!
         val isOpened = HelperUtils.openFile(context, filePath)
-        methodResult?.success(isOpened)
+        result.success(isOpened)
     }
 
 
@@ -231,7 +230,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             if (requestCode == locationIntentCode) {
                 try {
                     Log.w("TAG", "addActivityResultListener:locationIntentCode $locationIntentCode")
-                    methodResult?.let {
+                    methodResults[SfaMethods.REQUEST_GPS]?.let {
                         if (resultCode == Activity.RESULT_OK) {
                             it.success(true)
                         } else {
@@ -245,7 +244,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     )
 
                 } finally {
-                    methodResult = null
+                    methodResults.remove(SfaMethods.REQUEST_GPS)
                 }
 
                 return@addActivityResultListener true
