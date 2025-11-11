@@ -4,7 +4,9 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.location.Location
+import android.media.MediaRecorder
 import android.os.Build
+import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import com.cbo.sfa_utils.helper.HelperUtils
@@ -18,6 +20,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.StandardMethodCodec
+import java.io.File
 import kotlin.collections.set
 
 
@@ -63,9 +66,81 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             SfaMethods.DEVELOPER_MODE -> isDeveloperModeOn(call, result)
             SfaMethods.OPEN_FILE -> openFile(call, result)
             SfaMethods.LOCATION_PERMISSION -> result.notImplemented()
+
+            // 🎙️ Audio recording methods
+            "startRecording" -> startRecording(result)
+            "pauseRecording" -> pauseRecording(result)
+            "resumeRecording" -> resumeRecording(result)
+            "stopRecording" -> stopRecording(result)
             else -> {
                 result.notImplemented()
             }
+        }
+    }
+
+    private fun startRecording(channelResult: MethodChannel.Result) {
+        try {
+            val context = applicationContext ?: run {
+                channelResult.error("CONTEXT_ERROR", "Context is null", null)
+                return
+            }
+
+            val dir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
+            if (dir == null) {
+                channelResult.error("DIR_ERROR", "Cannot access external music directory", null)
+                return
+            }
+
+            val file = File(dir, "chat_audio_${System.currentTimeMillis()}.m4a")
+            audioFilePath = file.absolutePath
+
+            recorder = MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(audioFilePath)
+                prepare()
+                start()
+            }
+            channelResult.success(null)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            channelResult.error("START_ERROR", e.localizedMessage, null)
+        }
+    }
+
+    private fun pauseRecording(channelResult: MethodChannel.Result) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                recorder?.pause()
+            }
+            channelResult.success(null)
+        } catch (e: Exception) {
+            channelResult.error("PAUSE_ERROR", e.localizedMessage, null)
+        }
+    }
+
+    private fun resumeRecording(channelResult: MethodChannel.Result) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                recorder?.resume()
+            }
+            channelResult.success(null)
+        } catch (e: Exception) {
+            channelResult.error("RESUME_ERROR", e.localizedMessage, null)
+        }
+    }
+
+    private fun stopRecording(channelResult: MethodChannel.Result) {
+        try {
+            recorder?.apply {
+                stop()
+                release()
+            }
+            recorder = null
+            channelResult.success(audioFilePath)
+        } catch (e: Exception) {
+            channelResult.error("STOP_ERROR", e.localizedMessage, null)
         }
     }
 
