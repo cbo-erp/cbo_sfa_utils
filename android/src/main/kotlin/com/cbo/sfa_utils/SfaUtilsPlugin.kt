@@ -4,7 +4,9 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.location.Location
+import android.media.MediaRecorder
 import android.os.Build
+import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import com.cbo.sfa_utils.helper.HelperUtils
@@ -18,17 +20,22 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.StandardMethodCodec
+import java.io.File
 import kotlin.collections.set
-
 
 /** SfaUtilsPlugin */
 class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
-
     private var applicationContext: Context? = null
     private var applicationActivity: Activity? = null
     private var methodChannel: MethodChannel? = null
     private var methodResults = mutableMapOf<String, Result>()
     private val locationIntentCode = 1999
+
+    // 🎙️ Recording fields
+    private var recorder: MediaRecorder? = null
+    private var audioFilePath: String? = null
+    private enum class RecordingState { IDLE, RECORDING, PAUSED }
+    private var recordingState = RecordingState.IDLE
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         this.applicationContext = binding.applicationContext
@@ -63,37 +70,138 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             SfaMethods.DEVELOPER_MODE -> isDeveloperModeOn(call, result)
             SfaMethods.OPEN_FILE -> openFile(call, result)
             SfaMethods.LOCATION_PERMISSION -> result.notImplemented()
+
+            // 🎙️ Recording Methods
+            SfaMethods.START_RECORDING -> startRecording(result)
+            SfaMethods.PAUSE_RECORDING -> pauseRecording(result)
+            SfaMethods.RESUME_RECORDING -> resumeRecording(result)
+            SfaMethods.STOP_RECORDING -> stopRecording(result)
+
             else -> {
                 result.notImplemented()
             }
         }
     }
 
+    // ==================== 🎙️ AUDIO RECORDING HANDLERS ====================
+
+    private fun startRecording(channelResult: MethodChannel.Result) {
+        try {
+            if (recordingState == RecordingState.RECORDING) {
+                channelResult.error("START_ERROR", "Recording already in progress.", null)
+                return
+            }
+
+            val context = applicationContext ?: run {
+                channelResult.error("CONTEXT_ERROR", "Context is null", null)
+                return
+            }
+
+            val dir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
+            if (dir == null) {
+                channelResult.error("DIR_ERROR", "Cannot access external music directory", null)
+                return
+            }
+
+            val file = File(dir, "sfa_recorded_audio_${System.currentTimeMillis()}.m4a")
+            audioFilePath = file.absolutePath
+
+            recorder = MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(audioFilePath)
+                prepare()
+                start()
+            }
+
+            recordingState = RecordingState.RECORDING
+            channelResult.success(null)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            channelResult.error("START_ERROR", e.localizedMessage, null)
+        }
+    }
+
+    private fun pauseRecording(channelResult: MethodChannel.Result) {
+        try {
+            if (recordingState != RecordingState.RECORDING) {
+                channelResult.error("PAUSE_ERROR", "Cannot pause — recording not in progress.", null)
+                return
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                recorder?.pause()
+                recordingState = RecordingState.PAUSED
+                channelResult.success(null)
+            } else {
+                channelResult.error("PAUSE_ERROR", "Pause not supported on this Android version.", null)
+            }
+        } catch (e: Exception) {
+            channelResult.error("PAUSE_ERROR", e.localizedMessage, null)
+        }
+    }
+
+    private fun resumeRecording(channelResult: MethodChannel.Result) {
+        try {
+            if (recordingState != RecordingState.PAUSED) {
+                channelResult.error("RESUME_ERROR", "Cannot resume — recorder is not paused.", null)
+                return
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                recorder?.resume()
+                recordingState = RecordingState.RECORDING
+                channelResult.success(null)
+            } else {
+                channelResult.error("RESUME_ERROR", "Resume not supported on this Android version.", null)
+            }
+        } catch (e: Exception) {
+            channelResult.error("RESUME_ERROR", e.localizedMessage, null)
+        }
+    }
+
+    private fun stopRecording(channelResult: MethodChannel.Result) {
+        try {
+            if (recordingState == RecordingState.IDLE) {
+                channelResult.error("STOP_ERROR", "Recording has not started yet.", null)
+                return
+            }
+
+            recorder?.apply {
+                stop()
+                release()
+            }
+
+            recorder = null
+            recordingState = RecordingState.IDLE
+            channelResult.success(audioFilePath)
+        } catch (e: Exception) {
+            channelResult.error("STOP_ERROR", "Failed to stop recording: ${e.localizedMessage}", null)
+        }
+    }
+
+    // ==================== 📍 LOCATION + SYSTEM METHODS ====================
 
     private fun getLocation(arguments: MethodCall, result: Result) {
         if (applicationContext == null) {
             result.error("FAILURE", "Context is null", null)
             return
         }
-
         LocationHelper.getCurrentLocation(
             context = applicationContext!!,
             callback = object : UtilsCallback<Location?> {
                 override fun onReceive(data: Location?) {
-
                     if (data != null) {
-
                         val isMockLocation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             data.isMock
                         } else {
                             data.isFromMockProvider
                         }
-
                         if (isMockLocation) {
                             result.error("FAKE_GPS_DETECTED", "Fake GPS detected", null)
                             return
                         }
-
                         result.success(
                             mapOf<String, Any>(
                                 "latitude" to data.latitude,
@@ -107,7 +215,6 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                                 "hasAccuracy" to data.hasAccuracy(),
                             )
                         )
-
                     } else {
                         result.error("LOCATION_NOT_FOUND", "Location not found", null)
                     }
@@ -116,22 +223,17 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         )
     }
 
-
     private fun requestGPS(arguments: MethodCall, result: Result) {
-
         if (applicationActivity == null) {
             result.error("FAILURE", "Context is null", null)
             return
         }
-
         if (LocationHelper.isLocationEnabled(applicationContext!!)) {
             result.success(true)
             return
         }
-
-        Log.e("TAG","+Calling REQUEST_GPS")
+        Log.e("TAG", "+Calling REQUEST_GPS")
         methodResults[SfaMethods.REQUEST_GPS] = result
-        // Only pass callback for handling permanent failure case (e.g. SETTINGS_CHANGE_UNAVAILABLE)
         LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { success ->
             if (!success) {
                 result.error("PERMISSION_DENIED", "User denied the request", "")
@@ -139,30 +241,14 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         })
     }
 
-
     private fun getBatteryPercentage(arguments: MethodCall, result: Result) {
         val percentage = HelperUtils.getBatteryLevel(applicationContext!!)
         result.success(percentage)
-
-//        var mURL = arguments.argument<String>("url")
-//        var _isSubmitted = false
-//        CboUtils().getBatteryPercentage(
-//            mContext = applicationContext,
-//            callBack = object : BatteryCallback {
-//                override fun onReceive(batteryPercentage: Int) {
-//                    if (!_isSubmitted) {
-//                        _isSubmitted = true
-//                        result.success(successResult(resultData = "$batteryPercentage"))
-//                    }
-//                }
-//            })
-
     }
 
     private fun getMobileIMEI(arguments: MethodCall, result: Result) {
         val uniqueId = HelperUtils.getDeviceUniqueId(applicationContext!!)
         result.success(uniqueId)
-
     }
 
     private fun setMobileIMEI(arguments: MethodCall, result: Result) {
@@ -178,15 +264,16 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private fun timeIsAuto(arguments: MethodCall, result: Result) {
         val autoTimeVal = Settings.Global.getInt(
-            this.applicationContext!!.contentResolver, Settings.Global.AUTO_TIME, 0
+            this.applicationContext!!.contentResolver,
+            Settings.Global.AUTO_TIME, 0
         )
-        result.success(autoTimeVal == 1);
+        result.success(autoTimeVal == 1)
     }
 
     private fun timeZoneIsAuto(arguments: MethodCall, result: Result) {
-
         val autoTimeZone = Settings.Global.getInt(
-            this.applicationContext!!.contentResolver, Settings.Global.AUTO_TIME_ZONE, 0
+            this.applicationContext!!.contentResolver,
+            Settings.Global.AUTO_TIME_ZONE, 0
         )
         result.success(autoTimeZone == 1)
     }
@@ -199,7 +286,6 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun isDeveloperModeOn(arguments: MethodCall, result: Result) {
-
         val developerMode = Settings.Global.getInt(
             this.applicationContext!!.contentResolver,
             Settings.Global.DEVELOPMENT_SETTINGS_ENABLED,
@@ -213,22 +299,16 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             result.error("FAILURE", "Application context is null", null)
             return
         }
-
         val filePath = arguments.argument<String>("filePath")!!
         val isOpened = HelperUtils.openFile(context, filePath)
         result.success(isOpened)
     }
 
-
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         applicationContext = binding.activity
         applicationActivity = binding.activity
         binding.addActivityResultListener { requestCode, resultCode, data ->
-            Log.w(
-                "TAG",
-                "+addActivityResultListener $requestCode, resultCode: $resultCode, data: $data"
-            )
-
+            Log.w("TAG", "+addActivityResultListener $requestCode, resultCode: $resultCode, data: $data")
             if (requestCode == locationIntentCode) {
                 try {
                     Log.w("TAG", "+addActivityResultListener:locationIntentCode $locationIntentCode")
@@ -240,21 +320,14 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                         }
                     }
                 } catch (e: IllegalStateException) {
-                    Log.e(
-                        "TAG",
-                        "+addActivityResultListener:Error: Reply already submitted - ${e.message}"
-                    )
-
+                    Log.e("TAG", "+addActivityResultListener:Error: Reply already submitted - ${e.message}")
                 } finally {
                     methodResults.remove(SfaMethods.REQUEST_GPS)
                 }
-
                 return@addActivityResultListener true
             }
-
             return@addActivityResultListener false
         }
-
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
@@ -268,6 +341,4 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     override fun onDetachedFromActivity() {
         applicationContext = null
     }
-
-
 }

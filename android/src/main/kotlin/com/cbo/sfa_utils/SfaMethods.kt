@@ -13,4 +13,8 @@ object SfaMethods {
     const val DEVELOPER_MODE = "developerModeOn"
     const val OPEN_FILE = "openFile"
     const val LOCATION_PERMISSION = "hasLocationPermission"
+    const val START_RECORDING = "startRecording"
+    const val PAUSE_RECORDING = "pauseRecording"
+    const val RESUME_RECORDING = "resumeRecording"
+    const val STOP_RECORDING = "stopRecording"
 }

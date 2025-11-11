@@ -1,9 +1,12 @@
 import Flutter
 import CoreLocation
 import UIKit
+import AVFoundation
 
 public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionControllerDelegate {
-    
+
+    var audioRecorder: AVAudioRecorder?
+    var audioFilePath: String?
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let taskQueue = registrar.messenger().makeBackgroundTaskQueue?()
@@ -21,38 +24,103 @@ public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionContr
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
+        
+        // 🎙️ Audio Recording Methods
+        case "startRecording":
+            startRecording(result: result)
+        case "pauseRecording":
+            pauseRecording(result: result)
+        case "resumeRecording":
+            resumeRecording(result: result)
+        case "stopRecording":
+            stopRecording(result: result)
+
+        // 🔋 Other Existing Native Methods
         case "launchTurnByTurn":
             launchTurnByTurn(methodCall: call, flutterResult: result)
-        
         case "getMobileIMEI":
             getMobileIMEI(methodCall: call, flutterResult: result)
-        
         case "getOsDetail":
             getOsDetail(methodCall: call, flutterResult: result)
-            
         case "setMobileIMEI":
             setMobileIMEI(methodCall: call, flutterResult: result)
-            
         case "getBatteryPercentage":
             getBatteryPercentage(methodCall: call, flutterResult: result)
-            
         case "hasLocationPermission":
             hasLocationPermission(methodCall: call, flutterResult: result)
-
         case "openFile":
             openFile(methodCall: call, flutterResult: result)
-            
         case "getLocation":
             result(FlutterMethodNotImplemented)
-            
         default:
             result(FlutterMethodNotImplemented)
         }
     }
-    
-    
-    private func openFile(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
 
+    // MARK: - 🎙️ Audio Recording Functions
+
+    private func startRecording(result: @escaping FlutterResult) {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playAndRecord, mode: .default)
+            try session.setActive(true)
+
+            // Ask for mic permission if not granted
+            session.requestRecordPermission { allowed in
+                if !allowed {
+                    result(FlutterError(code: "PERMISSION_DENIED", message: "Microphone permission denied", details: nil))
+                    return
+                }
+
+                DispatchQueue.main.async {
+                    let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                    let fileURL = dir.appendingPathComponent("chat_audio_\(Int(Date().timeIntervalSince1970)).m4a")
+                    self.audioFilePath = fileURL.path
+
+                    let settings: [String: Any] = [
+                        AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+                        AVSampleRateKey: 12000,
+                        AVNumberOfChannelsKey: 1,
+                        AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+                    ]
+
+                    do {
+                        self.audioRecorder = try AVAudioRecorder(url: fileURL, settings: settings)
+                        self.audioRecorder?.record()
+                        result(nil)
+                    } catch {
+                        result(FlutterError(code: "START_ERROR", message: error.localizedDescription, details: nil))
+                    }
+                }
+            }
+        } catch {
+            result(FlutterError(code: "START_ERROR", message: error.localizedDescription, details: nil))
+        }
+    }
+
+    private func pauseRecording(result: @escaping FlutterResult) {
+        if #available(iOS 14.0, *) {
+            audioRecorder?.pause()
+        }
+        result(nil)
+    }
+
+    private func resumeRecording(result: @escaping FlutterResult) {
+        if #available(iOS 14.0, *) {
+            audioRecorder?.record()
+        }
+        result(nil)
+    }
+
+    private func stopRecording(result: @escaping FlutterResult) {
+        audioRecorder?.stop()
+        audioRecorder = nil
+        result(audioFilePath)
+    }
+
+    // MARK: - Existing Plugin Methods (Unchanged)
+
+    private func openFile(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
         guard let args = methodCall.arguments as? [String: Any],
               let filePath = args["filePath"] as? String else {
             flutterResult(FlutterError(code: "FILE_OPEN_FAILURE", message: "File path not provided", details: nil))
@@ -82,12 +150,10 @@ public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionContr
         }
     }
     
-    // MARK: - UIDocumentInteractionControllerDelegate
-    
     public func documentInteractionControllerViewControllerForPreview(_ controller: UIDocumentInteractionController) -> UIViewController {
         return UIApplication.shared.keyWindow?.rootViewController ?? UIViewController()
     }
-    
+
     private func getOsDetail(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
         let osDetails: [String: Any] = [
             "platform": "ios",
@@ -96,17 +162,14 @@ public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionContr
             "sdk_version" : DeviceInfo.sdkVersion,
             "device_model": DeviceInfo.model
         ]
-        
         flutterResult(osDetails)
     }
-    
+
     private func getMobileIMEI(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
-        // If you want to switch between CboUtils and AppKeychainHelper
-        // let _deviceId = CboUtils().getDeviceUniqueId()
         let deviceId = AppKeychainHelper().getSfaDevicetoken()
         flutterResult(deviceId)
     }
-    
+
     private func setMobileIMEI(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
         if let args = methodCall.arguments as? [String: Any],
            let uniqueToken = args["uniqueToken"] as? String {
@@ -116,65 +179,43 @@ public class SfaUtilsPlugin: NSObject, FlutterPlugin, UIDocumentInteractionContr
             flutterResult(false)
         }
     }
-    
+
     private func getBatteryPercentage(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
         UIDevice.current.isBatteryMonitoringEnabled = true
         let level = UIDevice.current.batteryLevel
         let batteryPercentage = Int(level * 100)
         flutterResult(batteryPercentage)
     }
-    
+
     private func hasLocationPermission(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
         DispatchQueue.global().async {
             let locationServicesEnabled = CLLocationManager.locationServicesEnabled()
-            
             DispatchQueue.main.async {
                 guard locationServicesEnabled else {
-                    flutterResult(FlutterError(
-                        code: "LOCATION_DISABLED",
-                        message: "Location services are not enabled",
-                        details: nil
-                    ))
+                    flutterResult(FlutterError(code: "LOCATION_DISABLED", message: "Location services are not enabled", details: nil))
                     return
                 }
-                
                 let authorizationStatus = CboUtils().locationAuthorisationStatus()
                 flutterResult(authorizationStatus)
             }
         }
-        
-        // MARK: - Optional: Use for iOS 14+ advanced permission check
-        /*
-        if #available(iOS 14.0, *) {
-            CboLocationManager().checkLocationPermission { status in
-                let result: [String: Any] = ["status": "1", "data": status]
-                flutterResult(result)
+    }
+
+    private func launchTurnByTurn(methodCall: FlutterMethodCall, flutterResult: @escaping FlutterResult) {
+        if let args = methodCall.arguments as? [String:Any] {
+            let mLat = args["mLat"] as! Double
+            let mLon = args["mLon"] as! Double
+            let googleMapUrl = URL(string: "comgooglemaps://")!
+            if UIApplication.shared.canOpenURL(googleMapUrl) {
+                let directionsRequest = "comgooglemaps://?saddr=\(mLat),\(mLon)" + "&x-success=REPCO://?resume=true&x-source=REPCO"
+                let directionsURL = URL(string: directionsRequest)!
+                UIApplication.shared.open(directionsURL)
+            } else {
+                NSLog("Can't use comgooglemaps:// on this device.")
             }
         } else {
-            CboUtils().getLocationPermission { result in
-                let resultDict: [String: Any] = ["status": "1", "data": result]
-                flutterResult(resultDict)
-            }
+            let dictResult: [String:String] = ["status":"0", "data":"Cannot launch map"]
+            flutterResult(dictResult)
         }
-        */
     }
-    
-    private func launchTurnByTurn(methodCall: FlutterMethodCall,
-                                  flutterResult : @escaping FlutterResult) {
-            if let args = methodCall.arguments as? [String:Any]{
-                let mLat = args["mLat"] as! Double
-                let mLon = args["mLon"] as! Double
-                let googleMapUrl = URL(string: "comgooglemaps://")!
-                if UIApplication.shared.canOpenURL(googleMapUrl) {
-                    let directionsRequest = "comgooglemaps://?saddr=\(mLat),\(mLon)" + "&x-success=REPCO://?resume=true&x-source=REPCO"
-                    let directionsURL = URL(string: directionsRequest)!
-                    UIApplication.shared.openURL(directionsURL)
-                } else {
-                    NSLog("Can't use comgooglemaps:// on this device.")
-                }
-            }else{
-                let _dictResult : [String:String] = ["status":"0", "data":"Cannot launch map"]
-                flutterResult(_dictResult);
-            }
-        }
 }

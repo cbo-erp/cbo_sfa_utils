@@ -46,8 +46,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
     // Wait for result and reset the future afterward
     try {
       final result = await _ongoingLocationRequest!;
-      debugPrint(
-          "MethodChannelSfaUtils:_ongoingLocationRequest completed");
+      debugPrint("MethodChannelSfaUtils:_ongoingLocationRequest completed");
       return result;
     } finally {
       _ongoingLocationRequest = null;
@@ -90,7 +89,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
       } else {
         return DataResponse.failure("GPS Permission denied");
       }
-    } on PlatformException catch (e,s) {
+    } on PlatformException catch (e, s) {
       switch (e.code) {
         case "LOCATION_NOT_FOUND":
         case "FAKE_GPS_DETECTED":
@@ -183,6 +182,42 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   }
 
   @override
+  Future<bool> startRecording() async {
+    try {
+      return await methodChannel.invokeMethod("startRecording", {});
+    } catch (e) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> pauseRecording() async {
+    try {
+      return await methodChannel.invokeMethod("pauseRecording", {});
+    } catch (e) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> resumeRecording() async {
+    try {
+      return await methodChannel.invokeMethod("resumeRecording", {});
+    } catch (e) {
+      return false;
+    }
+  }
+
+  @override
+  Future<String?> stopRecording() async {
+    try {
+      return await methodChannel.invokeMethod('stopRecording');
+    } catch (e) {
+      return "";
+    }
+  }
+
+  @override
   Future<bool> openSetting() async {
     try {
       await methodChannel.invokeMethod("openSetting", {});
@@ -213,7 +248,8 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
     }
 
     // Assign the future to prevent duplicate calls
-    debugPrint("MethodChannelSfaUtils:Making new requestGPS request and waiting for completion");
+    debugPrint(
+        "MethodChannelSfaUtils:Making new requestGPS request and waiting for completion");
     _ongoingRequestGPSRequest = _requestGpsPermission();
 
     // Wait for result and reset the future afterward

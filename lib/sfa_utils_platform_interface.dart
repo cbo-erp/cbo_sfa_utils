@@ -55,6 +55,22 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
     throw UnimplementedError('timeIsAuto() has not been implemented.');
   }
 
+  Future<bool> startRecording() async {
+    throw UnimplementedError('startRecording() has not been implemented.');
+  }
+
+  Future<bool> pauseRecording() async {
+    throw UnimplementedError('pauseRecording() has not been implemented.');
+  }
+
+  Future<bool> resumeRecording() async {
+    throw UnimplementedError('resumeRecording() has not been implemented.');
+  }
+
+  Future<String?> stopRecording() async {
+    throw UnimplementedError('stopRecording() has not been implemented.');
+  }
+
   Future<bool> openSetting() async {
     throw UnimplementedError('openSetting() has not been implemented.');
   }
