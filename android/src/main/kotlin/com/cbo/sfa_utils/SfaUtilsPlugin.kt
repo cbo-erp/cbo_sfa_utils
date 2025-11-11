@@ -32,6 +32,8 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var methodChannel: MethodChannel? = null
     private var methodResults = mutableMapOf<String, Result>()
     private val locationIntentCode = 1999
+    private var recorder: MediaRecorder? = null
+    private var audioFilePath: String? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         this.applicationContext = binding.applicationContext
@@ -66,13 +68,13 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             SfaMethods.DEVELOPER_MODE -> isDeveloperModeOn(call, result)
             SfaMethods.OPEN_FILE -> openFile(call, result)
             SfaMethods.LOCATION_PERMISSION -> result.notImplemented()
+            SfaMethods.START_RECORDING  -> startRecording(result)
+            SfaMethods.PAUSE_RECORDING -> pauseRecording(result)
+            SfaMethods.RESUME_RECORDING -> resumeRecording(result)
+            SfaMethods.STOP_RECORDING -> stopRecording(result)
 
             // 🎙️ Audio recording methods
-            "startRecording" -> startRecording(result)
-            "pauseRecording" -> pauseRecording(result)
-            "resumeRecording" -> resumeRecording(result)
-            "stopRecording" -> stopRecording(result)
-            else -> {
+           else -> {
                 result.notImplemented()
             }
         }
