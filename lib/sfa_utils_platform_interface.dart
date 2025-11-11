@@ -67,7 +67,7 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
     throw UnimplementedError('timeIsAuto() has not been implemented.');
   }
 
-  Future<bool> stopRecording() async {
+  Future<String?> stopRecording() async {
     throw UnimplementedError('timeIsAuto() has not been implemented.');
   }
 

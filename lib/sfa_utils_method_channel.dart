@@ -215,14 +215,8 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   }
 
   @override
-  Future<bool> stopRecording() async {
-    try {
-      return Platform.isAndroid
-          ? await methodChannel.invokeMethod("stopRecording", {})
-          : false;
-    } catch (e) {
-      return false;
-    }
+  Future<String?> stopRecording() async {
+    return await methodChannel.invokeMethod('stopRecording');
   }
 
   @override
