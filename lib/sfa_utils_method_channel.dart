@@ -184,9 +184,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<bool> startRecording() async {
     try {
-      return Platform.isAndroid
-          ? await methodChannel.invokeMethod("startRecording", {})
-          : false;
+      return await methodChannel.invokeMethod("startRecording", {});
     } catch (e) {
       return false;
     }
@@ -195,9 +193,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<bool> pauseRecording() async {
     try {
-      return Platform.isAndroid
-          ? await methodChannel.invokeMethod("pauseRecording", {})
-          : false;
+      return await methodChannel.invokeMethod("pauseRecording", {});
     } catch (e) {
       return false;
     }
@@ -206,9 +202,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   @override
   Future<bool> resumeRecording() async {
     try {
-      return Platform.isAndroid
-          ? await methodChannel.invokeMethod("resumeRecording", {})
-          : false;
+      return await methodChannel.invokeMethod("resumeRecording", {});
     } catch (e) {
       return false;
     }
@@ -216,7 +210,11 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
 
   @override
   Future<String?> stopRecording() async {
-    return await methodChannel.invokeMethod('stopRecording');
+    try {
+      return await methodChannel.invokeMethod('stopRecording');
+    } catch (e) {
+      return "";
+    }
   }
 
   @override
