@@ -1,6 +1,5 @@
 package disable_battery_optimizations.devices;
 
-import static android.os.Build.VERSION_CODES.R;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -10,6 +9,8 @@ import androidx.annotation.DrawableRes;
 
 import disable_battery_optimizations.utils.ActionsUtils;
 import disable_battery_optimizations.utils.Manufacturer;
+
+import com.cbo.sfa_utils.R;
 
 public class Asus extends DeviceAbstract {
 

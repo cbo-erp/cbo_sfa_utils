@@ -10,6 +10,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
 
+import androidx.activity.ComponentActivity;
+
 import disable_battery_optimizations.managers.KillerManager;
 import disable_battery_optimizations.ui.DialogKillerManagerBuilder;
 
@@ -43,33 +45,29 @@ public class BatteryOptimizationUtil {
         return intent.resolveActivity(context.getPackageManager()) == null ? getAppSettingsIntent(context) : intent;
     }
 
-    public static void showBatteryOptimizationDialog(
-            final Context context,
-            final KillerManager.Actions action,
-            String titleMessage,
-            final String contentMessage,
-            final OnOptimizationActionCallback callback) {
+    public static void showBatteryOptimizationDialog(final ComponentActivity context, final KillerManager.Actions action, String titleMessage, final String contentMessage, final OnOptimizationActionCallback callback) {
 
         if (KillerManager.isActionAvailable(context, action)) {
             if (titleMessage == null) {
                 titleMessage = String.format("Your Device %s %s has additional battery optimization", Build.MANUFACTURER, Build.MODEL);
             }
 
-            new DialogKillerManagerBuilder()
-                    .setContext(context)
-                    .setDontShowAgain(false)
-                    .setTitleMessage(titleMessage)
-                    .setContentMessage(contentMessage)
-                    .setPositiveMessage("Ok")
-                    //.setNegativeMessage("Will Give Later")
-                    .setOnPositiveCallback(view -> {
-                        callback.onAccepted();
-                    })
-                    .setOnNegativeCallback((view) -> {
-                        callback.onCanceled();
-                    })
-                    .setAction(action)
-                    .show();
+            String finalTitleMessage = titleMessage;
+            context.runOnUiThread(() -> {
+
+                new DialogKillerManagerBuilder()
+                        .setContext(context)
+                        .setDontShowAgain(false)
+                        .setTitleMessage(finalTitleMessage)
+                        .setContentMessage(contentMessage)
+                        .setPositiveMessage("Ok")
+                        //.setNegativeMessage("Will Give Later")
+                        .setOnPositiveCallback(view -> {
+                            callback.onAccepted();
+                        }).setOnNegativeCallback((view) -> {
+                            callback.onCanceled();
+                        }).setAction(action).show();
+            });
         } else {
             callback.onAccepted();
         }

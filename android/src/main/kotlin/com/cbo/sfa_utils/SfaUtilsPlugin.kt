@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import android.util.Log
+import androidx.activity.ComponentActivity
 import com.cbo.sfa_utils.helper.BatteryOptimizationHelper
 import com.cbo.sfa_utils.helper.HelperUtils
 import com.cbo.sfa_utils.helper.LocationHelper
@@ -29,6 +30,8 @@ import java.io.File
 class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var applicationContext: Context? = null
     private var applicationActivity: Activity? = null
+
+    private var componentActivity: ComponentActivity? = null
     private var methodChannel: MethodChannel? = null
     private var methodResults = mutableMapOf<String, Result>()
     private val intentCodeLocation = 2001
@@ -59,12 +62,17 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         methodChannel = null
         applicationContext = null
         applicationActivity = null
+        componentActivity = null
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         applicationActivity = binding.activity
         applicationContext = binding.activity.applicationContext
-        BatteryOptimizationHelper.initSetup(binding.activity)
+        if (applicationActivity is ComponentActivity) {
+            componentActivity = applicationActivity as ComponentActivity
+            BatteryOptimizationHelper.initSetup(componentActivity!!)
+        }
+
         binding.addActivityResultListener { requestCode, resultCode, data ->
             if (requestCode == intentCodeLocation) {
                 try {
@@ -89,16 +97,23 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     override fun onDetachedFromActivityForConfigChanges() {
         applicationActivity = null
+        componentActivity = null
         BatteryOptimizationHelper.clearActivity()
     }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
         applicationActivity = binding.activity
-        BatteryOptimizationHelper.initSetup(binding.activity)
+        if (applicationActivity is ComponentActivity) {
+            componentActivity = applicationActivity as ComponentActivity
+            BatteryOptimizationHelper.initSetup(componentActivity!!)
+        }
+        applicationContext = binding.activity.applicationContext
+
     }
 
     override fun onDetachedFromActivity() {
         applicationActivity = null
+        componentActivity = null
         BatteryOptimizationHelper.clearActivity()
     }
 
@@ -387,7 +402,8 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     // ==================== 🔋 BATTERY OPTIMIZATION HANDLERS ====================
 
     private fun showEnableAutoStart(call: MethodCall, result: Result) {
-        val context = applicationActivity ?: return result.error("FAILURE", "Activity is null", null)
+        val context =
+            componentActivity ?: return result.error("FAILURE", "Activity is null", null)
         val title = call.argument<String?>("title") ?: ""
         val content = call.argument<String?>("content") ?: ""
 
@@ -407,12 +423,13 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun showDisableManBatteryOptimization(call: MethodCall, result: Result) {
-        val context = applicationActivity ?: return result.error("FAILURE", "Activity is null", null)
+        val context =
+            componentActivity ?: return result.error("FAILURE", "Activity is null", null)
         val title = call.argument<String?>("title") ?: ""
         val content = call.argument<String?>("content") ?: ""
 
         BatteryOptimizationHelper.showDisableManBatteryOptimization(
-            context = context,
+            activity = context,
             title = title,
             content = content,
             callback = object : BatteryOptimizationUtil.OnOptimizationActionCallback {
@@ -427,9 +444,10 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun showDisableBatteryOptimization(call: MethodCall, result: Result) {
-        val context = applicationActivity ?: return result.error("FAILURE", "Activity is null", null)
+        val compActivity =
+            componentActivity ?: return result.error("FAILURE", "Activity is null", null)
         BatteryOptimizationHelper.showDisableBatteryOptimization(
-            context = context,
+            activity = compActivity,
             callback = object : BatteryOptimizationUtil.OnOptimizationActionCallback {
                 override fun onAccepted() {
                     result.success(true)
@@ -442,10 +460,11 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun disableAllOptimizations(call: MethodCall, result: Result) {
-        val context = applicationActivity ?: return result.error("FAILURE", "Activity is null", null)
+        val compActivity =
+            componentActivity ?:  return result.error("FAILURE", "Activity is null", null)
 
         BatteryOptimizationHelper.disableAllOptimizations(
-            context = context,
+            activity = compActivity,
             autoStartTitle = call.argument<String?>("autoStartTitle") ?: "",
             autoStartContent = call.argument<String?>("autoStartContent") ?: "",
             manBatteryTitle = call.argument<String?>("manBatteryTitle") ?: "",

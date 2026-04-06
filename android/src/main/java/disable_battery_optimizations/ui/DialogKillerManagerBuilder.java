@@ -1,6 +1,7 @@
 package disable_battery_optimizations.ui;
 
 import android.content.Context;
+import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.CheckBox;
@@ -13,6 +14,7 @@ import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 
 import com.cbo.sfa_utils.R;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import disable_battery_optimizations.managers.KillerManager;
 import disable_battery_optimizations.utils.KillerManagerUtils;
@@ -134,12 +136,15 @@ public class DialogKillerManagerBuilder {
             LogUtils.i(this.getClass().getName(), "Don't show again is enabled and set to true");
             return;
         }
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
-        if(positiveBtnStr == null){
+        Context themedContext = new ContextThemeWrapper(
+                mContext,
+                com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog_Alert
+        );
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(themedContext);
+        if (positiveBtnStr == null) {
             positiveBtnStr = mContext.getText(R.string.dialog_button).toString();
         }
-        if(negativeBtnStr == null){
+        if (negativeBtnStr == null) {
             negativeBtnStr = mContext.getText(android.R.string.cancel).toString();
         }
 
@@ -148,13 +153,13 @@ public class DialogKillerManagerBuilder {
 
         builder.setPositiveButton(positiveBtnStr, (dialog, which) -> {
             KillerManager.doAction(mContext, mAction);
-            if(onPositive != null){
+            if (onPositive != null) {
                 onPositive.onClick(customView);
             }
         });
 
         builder.setNegativeButton(negativeBtnStr, (dialog, which) -> {
-            if(onNegative != null){
+            if (onNegative != null) {
                 onNegative.onClick(customView);
             }
         });
@@ -174,7 +179,7 @@ public class DialogKillerManagerBuilder {
         } else {
             builder.setTitle(mContext.getString(R.string.dialog_title_notification, KillerManager.getDevice().getDeviceManufacturer().toString()));
         }
-
+        builder.setCancelable(false);
         builder.show();
     }
 
@@ -190,7 +195,7 @@ public class DialogKillerManagerBuilder {
         } else {
             //TODO CUSTOM MESSAGE FOR SPECIFITQUE ACTIONS AND SPECIFIC DEVICE
             contentTextView.setText(String.format(mContext.getString(R.string.dialog_huawei_notification), mContext.getString(
-                            R.string.app_name)));
+                    R.string.app_name)));
         }
 
         if (this.enableDontShowAgain) {
@@ -215,7 +220,7 @@ public class DialogKillerManagerBuilder {
 
         if (helpImageRes != 0) {
             helpImageView.setImageResource(helpImageRes);
-        }else{
+        } else {
             helpImageView.setVisibility(View.GONE);
         }
     }

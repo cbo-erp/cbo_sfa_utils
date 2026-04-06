@@ -29,9 +29,10 @@
 
     <ImageView
         android:id="@+id/md_imageView"
+        android:contentDescription="screenshot"
         tools:src="@drawable/asus_autostart"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="300dp"
         android:layout_gravity="center_vertical|center_horizontal"
         android:layout_weight="3"/>
 
