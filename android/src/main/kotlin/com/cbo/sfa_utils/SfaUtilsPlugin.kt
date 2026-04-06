@@ -36,7 +36,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var methodResults = mutableMapOf<String, Result>()
     private val intentCodeLocation = 2001
 
-    // 🎙️ Recording fields
+    // Recording fields
     private var recorder: MediaRecorder? = null
     private var audioFilePath: String? = null
 
