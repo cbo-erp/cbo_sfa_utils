@@ -2,13 +2,22 @@ package disable_battery_optimizations.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
 import java.lang.ref.WeakReference;
 import java.util.Objects;
 
 public class PrefUtils {
+    private static SharedPreferences getPreference(Context context) {
+        WeakReference<Context> contextWeakReference = new WeakReference<>(context);
+
+        Context ctx = contextWeakReference.get();
+        if (ctx != null) {
+            String dbName = ctx.getPackageName() + "-sfa-utils";
+            return ctx.getSharedPreferences(dbName, Context.MODE_PRIVATE);
+        }
+        return null;
+    }
 
     /**
      * Called to save supplied value in shared preferences against given key.
@@ -18,10 +27,8 @@ public class PrefUtils {
      * @param value   Value to save
      */
     public static void saveToPrefs(Context context, String key, Object value) {
-        WeakReference<Context> contextWeakReference = new WeakReference<>(context);
-        if (contextWeakReference.get() != null) {
-            SharedPreferences prefs =
-                    PreferenceManager.getDefaultSharedPreferences(contextWeakReference.get());
+        SharedPreferences prefs = getPreference(context);
+        if (prefs != null) {
             final SharedPreferences.Editor editor = prefs.edit();
             if (value instanceof Integer) {
                 editor.putInt(key, (Integer) value);
@@ -50,10 +57,8 @@ public class PrefUtils {
      * @return Return the value found against given key, default if not found or any error occurs
      */
     public static Object getFromPrefs(Context context, String key, Object defaultValue) {
-        WeakReference<Context> contextWeakReference = new WeakReference<>(context);
-        if (contextWeakReference.get() != null) {
-            SharedPreferences sharedPrefs =
-                    PreferenceManager.getDefaultSharedPreferences(contextWeakReference.get());
+        SharedPreferences sharedPrefs = getPreference(context);
+        if (sharedPrefs != null) {
             try {
                 if (defaultValue instanceof String) {
                     return sharedPrefs.getString(key, defaultValue.toString());
@@ -81,11 +86,9 @@ public class PrefUtils {
      * @param key     Key to delete from SharedPreferences
      */
     public static void removeFromPrefs(Context context, String key) {
-        WeakReference<Context> contextWeakReference = new WeakReference<>(context);
-        if (contextWeakReference.get() != null) {
-            SharedPreferences prefs =
-                    PreferenceManager.getDefaultSharedPreferences(contextWeakReference.get());
-            final SharedPreferences.Editor editor = prefs.edit();
+        SharedPreferences sharedPrefs = getPreference(context);
+        if (sharedPrefs != null) {
+            final SharedPreferences.Editor editor = sharedPrefs.edit();
             editor.remove(key);
             editor.apply();
         }
@@ -93,11 +96,9 @@ public class PrefUtils {
 
     @SuppressWarnings("unused")
     public static boolean hasKey(Context context, String key) {
-        WeakReference<Context> contextWeakReference = new WeakReference<>(context);
-        if (contextWeakReference.get() != null) {
-            SharedPreferences prefs =
-                    PreferenceManager.getDefaultSharedPreferences(contextWeakReference.get());
-            return prefs.contains(key);
+        SharedPreferences sharedPrefs = getPreference(context);
+        if (sharedPrefs != null) {
+            return sharedPrefs.contains(key);
         }
         return false;
     }
