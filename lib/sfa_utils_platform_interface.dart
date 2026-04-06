@@ -1,6 +1,5 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:sfa_utils/models/os_detail.dart';
-import 'package:sfa_utils/sfa_utils.dart';
 
 import 'sfa_utils_method_channel.dart';
 
@@ -52,7 +51,7 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
   }
 
   Future<bool> developerModeOn() async {
-    throw UnimplementedError('timeIsAuto() has not been implemented.');
+    throw UnimplementedError('developerModeOn() has not been implemented.');
   }
 
   Future<bool> startRecording() async {
@@ -79,17 +78,67 @@ abstract class SfaUtilsPlatform extends PlatformInterface {
     throw UnimplementedError('timeZoneIsAuto() has not been implemented.');
   }
 
-  Future<DataResponse<Map<String, dynamic>>> getLocation() async {
+  Future<Map<String, dynamic>> getLocation() async {
     throw UnimplementedError('getLocation() has not been implemented.');
   }
 
   /// This method must be awaited to avoid potential crashes in the app.
   /// Failing to await the Future may lead to unhandled exceptions or undefined behavior.
-  Future<DataResponse<bool>> requestGPS() async {
+  Future<bool> requestGPS() async {
     throw UnimplementedError('requestGPS() has not been implemented.');
   }
 
   Future<bool> openFile(String filePath) async {
     throw UnimplementedError('openFile() has not been implemented.');
+  }
+
+  Future<bool> showEnableAutoStartSettings(
+    String title,
+    String content,
+  ) {
+    throw UnimplementedError(
+        'showEnableAutoStartSettings() has not been implemented.');
+  }
+
+  Future<bool> showDisableManufacturerBatteryOptimizationSettings(
+    String title,
+    String content,
+  ) {
+    throw UnimplementedError(
+        'showDisableManufacturerBatteryOptimizationSettings() has not been implemented.');
+  }
+
+  Future<bool> showDisableBatteryOptimizationSettings() {
+    throw UnimplementedError(
+        'showDisableBatteryOptimizationSettings() has not been implemented.');
+  }
+
+  Future<bool> showDisableAllOptimizationsSettings(
+    String autoStartTitle,
+    String autoStartContent,
+    String manBatteryTitle,
+    String manBatteryContent,
+  ) {
+    throw UnimplementedError(
+        'showDisableAllOptimizationsSettings() has not been implemented.');
+  }
+
+  Future<bool> get isAutoStartEnabled {
+    throw UnimplementedError('isAutoStartEnabled has not been implemented.');
+  }
+
+  Future<bool> get isBatteryOptimizationDisabled {
+    throw UnimplementedError(
+        'isBatteryOptimizationDisabled has not been implemented.');
+  }
+
+  Future<bool> get isManufacturerBatteryOptimizationDisabled {
+    throw UnimplementedError(
+        'isManufacturerBatteryOptimizationDisabled has not been implemented.');
+  }
+
+  Future<bool> get isAllBatteryOptimizationDisabled {
+    throw UnimplementedError(
+        'isAllBatteryOptimizationDisabled has not been implemented.');
   }
 }

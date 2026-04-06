@@ -9,9 +9,11 @@ import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import android.util.Log
+import com.cbo.sfa_utils.helper.BatteryOptimizationHelper
 import com.cbo.sfa_utils.helper.HelperUtils
 import com.cbo.sfa_utils.helper.LocationHelper
 import com.cbo.sfa_utils.helper.UtilsCallback
+import disable_battery_optimizations.utils.BatteryOptimizationUtil
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -21,7 +23,7 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.StandardMethodCodec
 import java.io.File
-import kotlin.collections.set
+
 
 /** SfaUtilsPlugin */
 class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
@@ -29,13 +31,17 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var applicationActivity: Activity? = null
     private var methodChannel: MethodChannel? = null
     private var methodResults = mutableMapOf<String, Result>()
-    private val locationIntentCode = 1999
+    private val intentCodeLocation = 2001
 
     // 🎙️ Recording fields
     private var recorder: MediaRecorder? = null
     private var audioFilePath: String? = null
+
     private enum class RecordingState { IDLE, RECORDING, PAUSED }
+
     private var recordingState = RecordingState.IDLE
+
+    private val TAG: String = "SfaUtilsPlugin"
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         this.applicationContext = binding.applicationContext
@@ -46,7 +52,6 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             binding.binaryMessenger.makeBackgroundTaskQueue()
         )
         methodChannel!!.setMethodCallHandler(this)
-        print("ChannelUtilsPlugin attached to engine............")
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -54,6 +59,47 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         methodChannel = null
         applicationContext = null
         applicationActivity = null
+    }
+
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        applicationActivity = binding.activity
+        applicationContext = binding.activity.applicationContext
+        BatteryOptimizationHelper.initSetup(binding.activity)
+        binding.addActivityResultListener { requestCode, resultCode, data ->
+            if (requestCode == intentCodeLocation) {
+                try {
+                    methodResults[SfaMethods.REQUEST_GPS]?.let {
+                        if (resultCode == Activity.RESULT_OK) {
+                            it.success(true)
+                        } else {
+                            it.error("PERMISSION_DENIED", "User denied the GPS request", "")
+                        }
+                    }
+                } catch (e: IllegalStateException) {
+                    Log.e(TAG, "Error: Reply already submitted - ${e.message}")
+                } finally {
+                    methodResults.remove(SfaMethods.REQUEST_GPS)
+                }
+                return@addActivityResultListener true
+            }
+            return@addActivityResultListener false
+        }
+    }
+
+
+    override fun onDetachedFromActivityForConfigChanges() {
+        applicationActivity = null
+        BatteryOptimizationHelper.clearActivity()
+    }
+
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        applicationActivity = binding.activity
+        BatteryOptimizationHelper.initSetup(binding.activity)
+    }
+
+    override fun onDetachedFromActivity() {
+        applicationActivity = null
+        BatteryOptimizationHelper.clearActivity()
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
@@ -77,15 +123,34 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             SfaMethods.RESUME_RECORDING -> resumeRecording(result)
             SfaMethods.STOP_RECORDING -> stopRecording(result)
 
-            else -> {
-                result.notImplemented()
-            }
+            // Disable Battery Optimizations
+            SfaMethods.SHOW_ENABLE_AUTO_START -> showEnableAutoStart(call, result)
+            SfaMethods.SHOW_DISABLE_MAN_BATTERY_OPTIMIZATION -> showDisableManBatteryOptimization(
+                call,
+                result
+            )
+
+            SfaMethods.SHOW_DISABLE_BATTERY_OPTIMIZATION -> showDisableBatteryOptimization(
+                call,
+                result
+            )
+
+            SfaMethods.DISABLE_ALL_OPTIMIZATIONS -> disableAllOptimizations(call, result)
+            SfaMethods.IS_AUTO_START_ENABLED -> isAutoStartEnabled(result)
+            SfaMethods.IS_BATTERY_OPTIMIZATION_DISABLED -> isBatteryOptimizationDisabled(result)
+            SfaMethods.IS_MAN_BATTERY_OPTIMIZATION_DISABLED -> isManBatteryOptimizationDisabled(
+                result
+            )
+
+            SfaMethods.IS_ALL_OPTIMIZATIONS_DISABLED -> isAllOptimizationsDisabled(result)
+
+            else -> result.notImplemented()
         }
     }
 
     // ==================== 🎙️ AUDIO RECORDING HANDLERS ====================
 
-    private fun startRecording(channelResult: MethodChannel.Result) {
+    private fun startRecording(channelResult: Result) {
         try {
             if (recordingState == RecordingState.RECORDING) {
                 channelResult.error("START_ERROR", "Recording already in progress.", null)
@@ -123,10 +188,14 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
     }
 
-    private fun pauseRecording(channelResult: MethodChannel.Result) {
+    private fun pauseRecording(channelResult: Result) {
         try {
             if (recordingState != RecordingState.RECORDING) {
-                channelResult.error("PAUSE_ERROR", "Cannot pause — recording not in progress.", null)
+                channelResult.error(
+                    "PAUSE_ERROR",
+                    "Cannot pause — recording not in progress.",
+                    null
+                )
                 return
             }
 
@@ -135,14 +204,18 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 recordingState = RecordingState.PAUSED
                 channelResult.success(null)
             } else {
-                channelResult.error("PAUSE_ERROR", "Pause not supported on this Android version.", null)
+                channelResult.error(
+                    "PAUSE_ERROR",
+                    "Pause not supported on this Android version.",
+                    null
+                )
             }
         } catch (e: Exception) {
             channelResult.error("PAUSE_ERROR", e.localizedMessage, null)
         }
     }
 
-    private fun resumeRecording(channelResult: MethodChannel.Result) {
+    private fun resumeRecording(channelResult: Result) {
         try {
             if (recordingState != RecordingState.PAUSED) {
                 channelResult.error("RESUME_ERROR", "Cannot resume — recorder is not paused.", null)
@@ -154,14 +227,18 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 recordingState = RecordingState.RECORDING
                 channelResult.success(null)
             } else {
-                channelResult.error("RESUME_ERROR", "Resume not supported on this Android version.", null)
+                channelResult.error(
+                    "RESUME_ERROR",
+                    "Resume not supported on this Android version.",
+                    null
+                )
             }
         } catch (e: Exception) {
             channelResult.error("RESUME_ERROR", e.localizedMessage, null)
         }
     }
 
-    private fun stopRecording(channelResult: MethodChannel.Result) {
+    private fun stopRecording(channelResult: Result) {
         try {
             if (recordingState == RecordingState.IDLE) {
                 channelResult.error("STOP_ERROR", "Recording has not started yet.", null)
@@ -177,19 +254,23 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             recordingState = RecordingState.IDLE
             channelResult.success(audioFilePath)
         } catch (e: Exception) {
-            channelResult.error("STOP_ERROR", "Failed to stop recording: ${e.localizedMessage}", null)
+            channelResult.error(
+                "STOP_ERROR",
+                "Failed to stop recording: ${e.localizedMessage}",
+                null
+            )
         }
     }
 
     // ==================== 📍 LOCATION + SYSTEM METHODS ====================
 
     private fun getLocation(arguments: MethodCall, result: Result) {
-        if (applicationContext == null) {
+        val context = applicationContext ?: run {
             result.error("FAILURE", "Context is null", null)
             return
         }
         LocationHelper.getCurrentLocation(
-            context = applicationContext!!,
+            context = context,
             callback = object : UtilsCallback<Location?> {
                 override fun onReceive(data: Location?) {
                     if (data != null) {
@@ -203,7 +284,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                             return
                         }
                         result.success(
-                            mapOf<String, Any>(
+                            mapOf(
                                 "latitude" to data.latitude,
                                 "longitude" to data.longitude,
                                 "isMock" to false,
@@ -224,21 +305,20 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun requestGPS(arguments: MethodCall, result: Result) {
-        if (applicationActivity == null) {
-            result.error("FAILURE", "Context is null", null)
+        val activity = applicationActivity ?: run {
+            result.error("FAILURE", "Activity is null", null)
             return
         }
         if (LocationHelper.isLocationEnabled(applicationContext!!)) {
             result.success(true)
             return
         }
-        Log.e("TAG", "+Calling REQUEST_GPS")
         methodResults[SfaMethods.REQUEST_GPS] = result
-        LocationHelper.requestGps(applicationActivity!!, locationIntentCode, callback = { success ->
+        LocationHelper.requestGps(activity, intentCodeLocation) { success ->
             if (!success) {
                 result.error("PERMISSION_DENIED", "User denied the request", "")
             }
-        })
+        }
     }
 
     private fun getBatteryPercentage(arguments: MethodCall, result: Result) {
@@ -252,7 +332,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun setMobileIMEI(arguments: MethodCall, result: Result) {
-        val uniqueToken = arguments.argument<String>("uniqueToken") as String
+        val uniqueToken = arguments.argument<String>("uniqueToken") ?: ""
         val status = HelperUtils.setDeviceUniqueId(applicationContext!!, uniqueId = uniqueToken)
         result.success(status)
     }
@@ -264,30 +344,29 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private fun timeIsAuto(arguments: MethodCall, result: Result) {
         val autoTimeVal = Settings.Global.getInt(
-            this.applicationContext!!.contentResolver,
-            Settings.Global.AUTO_TIME, 0
+            applicationContext!!.contentResolver, Settings.Global.AUTO_TIME, 0
         )
         result.success(autoTimeVal == 1)
     }
 
     private fun timeZoneIsAuto(arguments: MethodCall, result: Result) {
         val autoTimeZone = Settings.Global.getInt(
-            this.applicationContext!!.contentResolver,
-            Settings.Global.AUTO_TIME_ZONE, 0
+            applicationContext!!.contentResolver, Settings.Global.AUTO_TIME_ZONE, 0
         )
         result.success(autoTimeZone == 1)
     }
 
     private fun openSettings(arguments: MethodCall, result: Result) {
-        val intent = Intent(Settings.ACTION_DATE_SETTINGS)
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val intent = Intent(Settings.ACTION_DATE_SETTINGS).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
         applicationContext!!.startActivity(intent)
         result.success(true)
     }
 
     private fun isDeveloperModeOn(arguments: MethodCall, result: Result) {
         val developerMode = Settings.Global.getInt(
-            this.applicationContext!!.contentResolver,
+            applicationContext!!.contentResolver,
             Settings.Global.DEVELOPMENT_SETTINGS_ENABLED,
             0
         )
@@ -299,46 +378,106 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             result.error("FAILURE", "Application context is null", null)
             return
         }
-        val filePath = arguments.argument<String>("filePath")!!
+        val filePath = arguments.argument<String>("filePath") ?: ""
         val isOpened = HelperUtils.openFile(context, filePath)
         result.success(isOpened)
     }
 
-    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        applicationContext = binding.activity
-        applicationActivity = binding.activity
-        binding.addActivityResultListener { requestCode, resultCode, data ->
-            Log.w("TAG", "+addActivityResultListener $requestCode, resultCode: $resultCode, data: $data")
-            if (requestCode == locationIntentCode) {
-                try {
-                    Log.w("TAG", "+addActivityResultListener:locationIntentCode $locationIntentCode")
-                    methodResults[SfaMethods.REQUEST_GPS]?.let {
-                        if (resultCode == Activity.RESULT_OK) {
-                            it.success(true)
-                        } else {
-                            it.error("PERMISSION_DENIED", "User denied the GPS request", "")
-                        }
-                    }
-                } catch (e: IllegalStateException) {
-                    Log.e("TAG", "+addActivityResultListener:Error: Reply already submitted - ${e.message}")
-                } finally {
-                    methodResults.remove(SfaMethods.REQUEST_GPS)
+
+    // ==================== 🔋 BATTERY OPTIMIZATION HANDLERS ====================
+
+    private fun showEnableAutoStart(call: MethodCall, result: Result) {
+        val context = applicationActivity ?: return result.error("FAILURE", "Activity is null", null)
+        val title = call.argument<String?>("title") ?: ""
+        val content = call.argument<String?>("content") ?: ""
+
+        BatteryOptimizationHelper.showEnableAutoStart(
+            context = context,
+            title = title,
+            content = content,
+            callback = object : BatteryOptimizationUtil.OnOptimizationActionCallback {
+                override fun onAccepted() {
+                    result.success(true)
                 }
-                return@addActivityResultListener true
-            }
-            return@addActivityResultListener false
-        }
+
+                override fun onCanceled() {
+                    result.success(false)
+                }
+            })
     }
 
-    override fun onDetachedFromActivityForConfigChanges() {
-        applicationContext = null
+    private fun showDisableManBatteryOptimization(call: MethodCall, result: Result) {
+        val context = applicationActivity ?: return result.error("FAILURE", "Activity is null", null)
+        val title = call.argument<String?>("title") ?: ""
+        val content = call.argument<String?>("content") ?: ""
+
+        BatteryOptimizationHelper.showDisableManBatteryOptimization(
+            context = context,
+            title = title,
+            content = content,
+            callback = object : BatteryOptimizationUtil.OnOptimizationActionCallback {
+                override fun onAccepted() {
+                    result.success(true)
+                }
+
+                override fun onCanceled() {
+                    result.success(false)
+                }
+            })
     }
 
-    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
-        applicationContext = binding.activity
+    private fun showDisableBatteryOptimization(call: MethodCall, result: Result) {
+        val context = applicationActivity ?: return result.error("FAILURE", "Activity is null", null)
+        BatteryOptimizationHelper.showDisableBatteryOptimization(
+            context = context,
+            callback = object : BatteryOptimizationUtil.OnOptimizationActionCallback {
+                override fun onAccepted() {
+                    result.success(true)
+                }
+
+                override fun onCanceled() {
+                    result.success(false)
+                }
+            })
     }
 
-    override fun onDetachedFromActivity() {
-        applicationContext = null
+    private fun disableAllOptimizations(call: MethodCall, result: Result) {
+        val context = applicationActivity ?: return result.error("FAILURE", "Activity is null", null)
+
+        BatteryOptimizationHelper.disableAllOptimizations(
+            context = context,
+            autoStartTitle = call.argument<String?>("autoStartTitle") ?: "",
+            autoStartContent = call.argument<String?>("autoStartContent") ?: "",
+            manBatteryTitle = call.argument<String?>("manBatteryTitle") ?: "",
+            manBatteryContent = call.argument<String?>("manBatteryContent") ?: "",
+            callback = object : BatteryOptimizationUtil.OnOptimizationActionCallback {
+                override fun onAccepted() {
+                    result.success(true)
+                }
+
+                override fun onCanceled() {
+                    result.success(false)
+                }
+            })
+    }
+
+    private fun isAutoStartEnabled(result: Result) {
+        val context = applicationContext ?: return result.error("FAILURE", "Context is null", null)
+        result.success(BatteryOptimizationHelper.isAutoStartEnabled(context))
+    }
+
+    private fun isBatteryOptimizationDisabled(result: Result) {
+        val context = applicationContext ?: return result.error("FAILURE", "Context is null", null)
+        result.success(BatteryOptimizationHelper.isBatteryOptimizationDisabled(context))
+    }
+
+    private fun isManBatteryOptimizationDisabled(result: Result) {
+        val context = applicationContext ?: return result.error("FAILURE", "Context is null", null)
+        result.success(BatteryOptimizationHelper.isManBatteryOptimizationDisabled(context))
+    }
+
+    private fun isAllOptimizationsDisabled(result: Result) {
+        val context = applicationContext ?: return result.error("FAILURE", "Context is null", null)
+        result.success(BatteryOptimizationHelper.isAllOptimizationsDisabled(context))
     }
 }

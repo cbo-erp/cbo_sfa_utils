@@ -72,7 +72,7 @@ class _MyAppState extends State<MyApp> {
     // BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
 
     SfaUtilsPlatform.instance.requestGPS().then((value) {
-      debugPrint("value1===> ${value.isSuccess}");
+      debugPrint("value1===> $value");
     });
   }
 

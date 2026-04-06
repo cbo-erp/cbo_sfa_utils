@@ -4,14 +4,13 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sfa_utils/models/os_detail.dart';
-import 'package:sfa_utils/sfa_utils.dart';
 
 import 'sfa_utils_platform_interface.dart';
 
 /// An implementation of [SfaUtilsPlatform] that uses method channels.
 class MethodChannelSfaUtils extends SfaUtilsPlatform {
-  Future<DataResponse<Map<String, dynamic>>>? _ongoingLocationRequest;
-  Future<DataResponse<bool>>? _ongoingRequestGPSRequest;
+  Future<Map<String, dynamic>>? _ongoingLocationRequest;
+  Future<bool>? _ongoingRequestGPSRequest;
   final methodChannel = const MethodChannel('com.cbo.sfa.utils.native');
 
   @override
@@ -30,7 +29,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   }
 
   @override
-  Future<DataResponse<Map<String, dynamic>>> getLocation() async {
+  Future<Map<String, dynamic>> getLocation() async {
     if (_ongoingLocationRequest != null) {
       // Return the ongoing request if already in progress
       debugPrint(
@@ -53,10 +52,10 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
     }
   }
 
-  Future<DataResponse<Map<String, dynamic>>> _fetchLocation() async {
+  Future<Map<String, dynamic>> _fetchLocation() async {
     try {
       if (!Platform.isAndroid) {
-        return DataResponse.failure(
+        throw Exception(
           "Method call not allowed for this platform ${Platform.operatingSystem}",
         );
       }
@@ -85,9 +84,9 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
           'satelliteNumber': 0,
           'provider': "GPS"
         };
-        return DataResponse.success(map);
+        return map;
       } else {
-        return DataResponse.failure("GPS Permission denied");
+        throw Exception("GPS Permission denied");
       }
     } on PlatformException catch (e, s) {
       switch (e.code) {
@@ -108,9 +107,10 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
           // Handle other platform exceptions
           break;
       }
-      return DataResponse.failure("Platform Error ${e.code}, $s");
+
+      throw Exception("Platform Error ${e.code}, $s");
     } catch (e) {
-      return DataResponse.failure("Technical Error ${e.toString()}");
+      throw Exception("Technical Error ${e.toString()}");
     }
   }
 
@@ -239,7 +239,7 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
   }
 
   @override
-  Future<DataResponse<bool>> requestGPS() async {
+  Future<bool> requestGPS() async {
     if (_ongoingRequestGPSRequest != null) {
       // Return the ongoing request if already in progress
       debugPrint(
@@ -263,18 +263,18 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
     }
   }
 
-  Future<DataResponse<bool>> _requestGpsPermission() async {
+  Future<bool> _requestGpsPermission() async {
     try {
       if (!Platform.isAndroid) {
-        return DataResponse.failure(
+        throw Exception(
           "Method call not allowed for this platform ${Platform.operatingSystem}",
         );
       }
       var result = await methodChannel.invokeMethod("requestGPS", {});
-      return DataResponse.success(result == true);
+      return result == true;
     } catch (e) {
       debugPrint("error while requesting GPS >>>> ${e.toString()}");
-      return DataResponse.failure("GPS Permission denied", data: false);
+      throw Exception("GPS Permission denied");
     }
   }
 
@@ -286,6 +286,130 @@ class MethodChannelSfaUtils extends SfaUtilsPlatform {
     } catch (e) {
       debugPrint("openFile exception $e");
       return false;
+    }
+  }
+
+  @override
+  Future<bool> showEnableAutoStartSettings(
+    String title,
+    String content,
+  ) async {
+    try {
+      if (!Platform.isAndroid) return true;
+      bool? result = await methodChannel.invokeMethod<bool?>(
+        'showEnableAutoStart',
+        {"title": title, "content": content},
+      );
+      return result ?? false;
+    } catch (e) {
+      debugPrint("showEnableAutoStartSettings exception $e");
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> showDisableManufacturerBatteryOptimizationSettings(
+    String title,
+    String content,
+  ) async {
+    try {
+      if (!Platform.isAndroid) return true;
+      bool? result = await methodChannel.invokeMethod<bool?>(
+        'showDisableManBatteryOptimization',
+        {"title": title, "content": content},
+      );
+      return result ?? false;
+    } catch (e) {
+      debugPrint(
+          "showDisableManufacturerBatteryOptimizationSettings exception $e");
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> showDisableBatteryOptimizationSettings() async {
+    try {
+      if (!Platform.isAndroid) return true;
+      bool? result = await methodChannel.invokeMethod<bool?>(
+        'showDisableBatteryOptimization',
+      );
+      return result ?? false;
+    } catch (e) {
+      debugPrint("showDisableBatteryOptimizationSettings exception $e");
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> showDisableAllOptimizationsSettings(
+    String autoStartTitle,
+    String autoStartContent,
+    String manBatteryTitle,
+    String manBatteryContent,
+  ) async {
+    try {
+      if (!Platform.isAndroid) return true;
+      bool? result = await methodChannel.invokeMethod<bool?>(
+        'disableAllOptimizations',
+        {
+          "autoStartTitle": autoStartTitle,
+          "autoStartContent": autoStartContent,
+          "manBatteryTitle": manBatteryTitle,
+          "manBatteryContent": manBatteryContent,
+        },
+      );
+      return result ?? false;
+    } catch (e) {
+      debugPrint("showDisableAllOptimizationsSettings exception $e");
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> get isAutoStartEnabled async {
+    try {
+      if (!Platform.isAndroid) return true;
+      bool? value =
+          await methodChannel.invokeMethod<bool?>("isAutoStartEnabled");
+      return value ?? true;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  @override
+  Future<bool> get isBatteryOptimizationDisabled async {
+    try {
+      if (!Platform.isAndroid) return true;
+      bool? value = await methodChannel
+          .invokeMethod<bool?>("isBatteryOptimizationDisabled");
+      return value ?? true;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  @override
+  Future<bool> get isManufacturerBatteryOptimizationDisabled async {
+    try {
+      if (!Platform.isAndroid) return true;
+      bool? value = await methodChannel
+          .invokeMethod<bool?>("isManBatteryOptimizationDisabled");
+      return value ?? true;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  @override
+  Future<bool> get isAllBatteryOptimizationDisabled async {
+    try {
+      if (!Platform.isAndroid) return true;
+      bool? value =
+          await methodChannel.invokeMethod<bool?>("isAllOptimizationsDisabled");
+      return value ?? true;
+    } catch (e) {
+      return true;
     }
   }
 }
