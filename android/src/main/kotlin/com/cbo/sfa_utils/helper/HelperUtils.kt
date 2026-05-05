@@ -12,6 +12,7 @@ import android.webkit.MimeTypeMap
 import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
 import java.io.File
+import android.app.Activity
 
 
 object HelperUtils {
@@ -91,37 +92,38 @@ object HelperUtils {
 
 
     fun openFile(context: Context, filePath: String): Boolean {
-        if (filePath.isEmpty()) {
-            return false
-        }
-        // Create a file object from the path
+        if (filePath.isBlank()) return false
+
         val file = File(filePath)
+        if (!file.exists()) return false
 
-        // Get the MIME type based on the file extension
-        val mimeType = getMimeType(file)
+        val mimeType = getMimeType(file) ?: "*/*"
 
-        // Ensure the file exists and MIME type is valid
-        if (file.exists() && mimeType != null) {
-            // Get the URI for the file using FileProvider
+        return try {
             val uri: Uri = FileProvider.getUriForFile(
                 context,
-                "${context.packageName}.provider", // You can use the application ID here
+                "${context.packageName}.provider",
                 file
             )
 
-            // Create an intent to view the file
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, mimeType) // Set the MIME type for the file
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) // Grant read permission to the external app
+                setDataAndType(uri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) // ✅ ALWAYS
             }
 
-            // Start the intent to open the file
-            context.startActivity(Intent.createChooser(intent, "Open file with"))
-            return true
-        } else {
-            return false
+            val chooser = Intent.createChooser(intent, "Open file with").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
+            true
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
         }
     }
+
 
     // Function to get the MIME type based on file extension
     private fun getMimeType(file: File): String? {

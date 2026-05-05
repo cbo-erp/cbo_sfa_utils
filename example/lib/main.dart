@@ -19,6 +19,8 @@ class _MyAppState extends State<MyApp> {
   int batterLevel = -1;
   final _sfaUtilsPlugin = SfaUtils();
 
+  SfaUtilsPlatform get plugin => SfaUtilsPlatform.instance;
+
   @override
   void initState() {
     super.initState();
@@ -71,18 +73,58 @@ class _MyAppState extends State<MyApp> {
   Future<void> _onPressedRequestGPS() async {
     // BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
 
-    SfaUtilsPlatform.instance.requestGPS().then((value) {
-      debugPrint("value1===> ${value.isSuccess}");
+    // SfaUtilsPlatform.instance.requestGPS().then((value) {
+    //   debugPrint("value1===> $value");
+    // });
+
+    plugin.isAutoStartEnabled.then((v) {
+      debugPrint("isAutoStartEnabled===> $v");
     });
+
+    plugin.isBatteryOptimizationDisabled.then((v) {
+      debugPrint("isBatteryOptimizationDisabled===> $v");
+    });
+
+    plugin.isManufacturerBatteryOptimizationDisabled.then((v) {
+      debugPrint("isManufacturerBatteryOptimizationDisabled===> $v");
+    });
+
+    plugin.showEnableAutoStartSettings("title--", "content-----").then((v) {
+      debugPrint("showEnableAutoStartSettings===> $v");
+    });
+
+    plugin.showDisableBatteryOptimizationSettings().then((v) {
+      debugPrint("showDisableBatteryOptimizationSettings===> $v");
+    });
+
+    plugin
+        .showDisableManufacturerBatteryOptimizationSettings(
+      "title---",
+      "content----",
+    )
+        .then((v) {
+      debugPrint("showDisableManufacturerBatteryOptimizationSettings===> $v");
+    });
+    //
+    // plugin
+    //     .showDisableAllOptimizationsSettings(
+    //   "title--1",
+    //   "content-2",
+    //   "title --3",
+    //   "content--4",
+    // )
+    //     .then((v) {
+    //   debugPrint("showDisableAllOptimizationsSettings===> $v");
+    // });
   }
 
-  // Future<void> _onPressed() async {
-  //   var receivePort = ReceivePort();
-  //   // Here runMyIsolate methos should be a top level function
-  //   await Isolate.spawn<RootIsolateToken?>(
-  //       runMyIsolate, RootIsolateToken.instance);
-  //   print(await receivePort.first);
-  // }
+// Future<void> _onPressed() async {
+//   var receivePort = ReceivePort();
+//   // Here runMyIsolate methos should be a top level function
+//   await Isolate.spawn<RootIsolateToken?>(
+//       runMyIsolate, RootIsolateToken.instance);
+//   print(await receivePort.first);
+// }
 }
 
 // We declare a top level function here for an isolated callback function
