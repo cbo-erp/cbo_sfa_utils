@@ -97,7 +97,7 @@ object HelperUtils {
         val file = File(filePath)
         if (!file.exists()) return false
 
-        val mimeType = getMimeType(file) ?: "/"
+        val mimeType = getMimeType(file) ?: "*/*"
 
         return try {
             val uri: Uri = FileProvider.getUriForFile(
@@ -109,22 +109,22 @@ object HelperUtils {
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, mimeType)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) // ✅ ALWAYS
             }
 
-            // ✅ Only add this if context is NOT an Activity
-            if (context !is Activity) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val chooser = Intent.createChooser(intent, "Open file with").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-
-            context.startActivity(Intent.createChooser(intent, "Open file with"))
+            context.startActivity(chooser)
             true
 
         } catch (e: Exception) {
             e.printStackTrace()
             false
         }
-
     }
+
+
     // Function to get the MIME type based on file extension
     private fun getMimeType(file: File): String? {
         // Get the file extension from the file object
