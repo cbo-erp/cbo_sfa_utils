@@ -112,7 +112,10 @@ object HelperUtils {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) // ✅ ALWAYS
             }
 
-            context.startActivity(Intent.createChooser(intent, "Open file with"))
+            val chooser = Intent.createChooser(intent, "Open file with").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
             true
 
         } catch (e: Exception) {
