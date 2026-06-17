@@ -5,14 +5,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
+import disable_battery_optimizations.models.DeviceCapabilities;
 import disable_battery_optimizations.utils.ActionsUtils;
 import disable_battery_optimizations.utils.Manufacturer;
-
 
 public class HTC extends DeviceAbstract {
 
     private static final String HTC_PITROAD_PACKAGE_NAME = "com.htc.pitroad";
-    private static final String HTC_PITROAD_POWERSAVING = " com.htc.pitroad.landingpage.activity.LandingPageActivity";
+    private static final String HTC_PITROAD_POWERSAVING = "com.htc.pitroad.landingpage.activity.LandingPageActivity";
 
     @Override
     public boolean isThatRom() {
@@ -27,25 +27,20 @@ public class HTC extends DeviceAbstract {
     }
 
     @Override
-    public boolean isActionPowerSavingAvailable(Context context) {
-        return true;
-    }
-
-    @Override
-    public boolean isActionAutoStartAvailable(Context context) {
-        return false;
-    }
-
-    @Override
-    public boolean isActionNotificationAvailable(Context context) {
-        return false;
+    public DeviceCapabilities getCapabilities(Context context) {
+        return new DeviceCapabilities.Builder()
+                .setSupportsDoze(true)
+                .build();
     }
 
     @Override
     public Intent getActionPowerSaving(Context context) {
         Intent intent = ActionsUtils.createIntent();
-        intent.setComponent(new ComponentName(HTC_PITROAD_PACKAGE_NAME,HTC_PITROAD_POWERSAVING));
-        return intent;
+        intent.setComponent(new ComponentName(HTC_PITROAD_PACKAGE_NAME, HTC_PITROAD_POWERSAVING));
+        if (ActionsUtils.isIntentAvailable(context, intent)) {
+            return intent;
+        }
+        return super.getActionDozeMode(context);
     }
 
     @Override
@@ -60,17 +55,6 @@ public class HTC extends DeviceAbstract {
 
     @Override
     public String getExtraDebugInformations(Context context) {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public int getHelpImagePowerSaving() {
-        return 0;
-    }
-
-    @Override
-    public boolean needToUseAlongwithActionDoseMode(){
-        return true;
+        return "HTC Model: " + Build.MODEL;
     }
 }

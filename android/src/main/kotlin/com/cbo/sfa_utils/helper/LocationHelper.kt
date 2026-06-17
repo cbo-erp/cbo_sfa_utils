@@ -7,9 +7,8 @@ import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
-import android.util.Log
+import android.os.Build
 import androidx.core.app.ActivityCompat
-import androidx.core.app.ActivityCompat.startIntentSenderForResult
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
@@ -21,21 +20,11 @@ import com.google.android.gms.tasks.Task
 
 object LocationHelper {
 
-    //    fun checkAccessFineLocationGranted(context: Context): Boolean {
-//        return ContextCompat.checkSelfPermission(
-//            context, Manifest.permission.ACCESS_FINE_LOCATION
-//        ) == PackageManager.PERMISSION_GRANTED
-//    }
-//
     fun isLocationEnabled(context: Context): Boolean {
-        val gfgLocationManager: LocationManager =
-            context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        //return gfgLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || gfgLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-        return gfgLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || gfgLocationManager.isProviderEnabled(
-            LocationManager.NETWORK_PROVIDER
-        )
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || 
+               locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
     }
-
 
     fun requestGps(
         activity: Activity,
@@ -52,73 +41,49 @@ object LocationHelper {
 
         mSettingsClient.checkLocationSettings(builder.build())
             .addOnSuccessListener {
-                // ⚠️ Don't call callback here — let the plugin handle this with result.success(true)
-                activity.setResult(Activity.RESULT_OK) // Optional: simulate result code
+                callback?.onReceive(true)
             }
             .addOnFailureListener { e ->
                 if (e is ResolvableApiException) {
                     if (e.statusCode == LocationSettingsStatusCodes.RESOLUTION_REQUIRED) {
                         try {
-                            startIntentSenderForResult(
-                                activity,
-                                e.resolution.intentSender,
-                                locationRequestCode,
-                                null,
-                                0,
-                                0,
-                                0,
-                                null
-                            )
+                            e.startResolutionForResult(activity, locationRequestCode)
                         } catch (sie: IntentSender.SendIntentException) {
-                            Log.e("LocationHelper", "Error in requestGps: $sie")
                             callback?.onReceive(false)
                         }
-                    } else {
-                        callback?.onReceive(false)
-                    }
+                    } else callback?.onReceive(false)
+                } else callback?.onReceive(false)
+            }
+    }
+
+    fun getCurrentLocation(context: Context, callback: UtilsCallback<Location?>) {
+        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+        val cancellationTokenSource = CancellationTokenSource()
+
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && 
+            ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            callback.onReceive(null)
+            return
+        }
+
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cancellationTokenSource.token)
+            .addOnCompleteListener { task: Task<Location> ->
+                if (task.isSuccessful && task.result != null) {
+                    callback.onReceive(task.result)
                 } else {
-                    callback?.onReceive(false)
+                    callback.onReceive(null)
                 }
             }
     }
 
-
-    fun getCurrentLocation(context: Context, callback: UtilsCallback<Location?>) {
-
-        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-        val cancellationTokenSource = CancellationTokenSource()
-
-
-        if (ActivityCompat.checkSelfPermission(
-                context, Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                context, Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
-
-        val currentLocationTask: Task<Location> = fusedLocationClient.getCurrentLocation(
-            Priority.PRIORITY_HIGH_ACCURACY, cancellationTokenSource.token
-        )
-
-        var isSubmitted = false
-        currentLocationTask.addOnCompleteListener { task: Task<Location> ->
-            val result = if (task.isSuccessful && task.result != null) {
-                val result: Location = task.result
-                "Location (success): ${result.latitude}, ${result.longitude}"
-
-            } else {
-                val exception = task.exception
-                "Location (failure): $exception"
-            }
-            if (!isSubmitted) {
-                isSubmitted = true;
-                callback.onReceive(task.result)
-            }
-
-            Log.d("TAG", "getCurrentLocation() result: $result")
-
+    /**
+     * Modern mock location detection.
+     */
+    fun isMockLocation(location: Location): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            location.isMock
+        } else {
+            location.isFromMockProvider
         }
     }
 }

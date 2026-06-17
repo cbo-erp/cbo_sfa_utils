@@ -1,5 +1,7 @@
 package disable_battery_optimizations.utils;
 
+import androidx.annotation.NonNull;
+
 public enum Manufacturer {
     XIAOMI("xiaomi"),
     SAMSUNG("samsung"),
@@ -18,6 +20,7 @@ public enum Manufacturer {
     Manufacturer(String device){
         name = device;
     }
+    @NonNull
     @Override
     public String toString() {
         return super.toString();

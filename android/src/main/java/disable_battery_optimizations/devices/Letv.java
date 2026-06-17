@@ -5,9 +5,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
+import java.util.Collections;
+
+import disable_battery_optimizations.models.BatteryGuide;
+import disable_battery_optimizations.models.DeviceCapabilities;
 import disable_battery_optimizations.utils.ActionsUtils;
 import disable_battery_optimizations.utils.Manufacturer;
-
 
 public class Letv extends DeviceAbstract {
     @Override
@@ -23,18 +26,11 @@ public class Letv extends DeviceAbstract {
     }
 
     @Override
-    public boolean isActionPowerSavingAvailable(Context context) {
-        return true;
-    }
-
-    @Override
-    public boolean isActionAutoStartAvailable(Context context) {
-        return true;
-    }
-
-    @Override
-    public boolean isActionNotificationAvailable(Context context) {
-        return false;
+    public DeviceCapabilities getCapabilities(Context context) {
+        return new DeviceCapabilities.Builder()
+                .setSupportsDoze(true)
+                .setSupportsAutoStart(true)
+                .build();
     }
 
     @Override
@@ -59,12 +55,19 @@ public class Letv extends DeviceAbstract {
     }
 
     @Override
-    public String getExtraDebugInformations(Context context) {
-        return null;
+    public BatteryGuide getPowerSavingGuide(Context context) {
+        return new BatteryGuide(
+                "Letv Background Management",
+                "Allow the app to run in the background.",
+                Collections.singletonList("Go to Settings -> Battery -> Background App Management and enable our app"),
+                0,
+                null,
+                null
+        );
     }
 
     @Override
-    public int getHelpImagePowerSaving() {
-        return 0;
+    public String getExtraDebugInformations(Context context) {
+        return "Letv Model: " + Build.MODEL;
     }
 }

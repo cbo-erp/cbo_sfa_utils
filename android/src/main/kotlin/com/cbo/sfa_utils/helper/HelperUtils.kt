@@ -1,157 +1,87 @@
 package com.cbo.sfa_utils.helper
 
-import android.Manifest
 import android.content.*
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.provider.Settings
-import android.telephony.TelephonyManager
 import android.webkit.MimeTypeMap
-import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
 import java.io.File
-import android.app.Activity
-
 
 object HelperUtils {
 
+    /**
+     * Returns a unique ID. 
+     * Handled with try-catch to prevent crashes on non-standard OEM ROMs.
+     */
     fun getDeviceUniqueId(context: Context): String {
-        val telephonyManager =
-            ContextWrapper(context).getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager?
-
-        val permissionStatus = ActivityCompat.checkSelfPermission(
-            context, Manifest.permission.READ_PHONE_STATE
-        )
-
-        var deviceIdStr: String? = try {
-            //DEVICE_ID = telephonyManager.getDeviceId();
-            if (permissionStatus != PackageManager.PERMISSION_GRANTED) {
-                return ""
-            }
-
-            telephonyManager?.deviceId ?: Settings.Secure.getString(
-                context.contentResolver,
-                Settings.Secure.ANDROID_ID
-            )
-
+        val baseId = try {
+            Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "0"
         } catch (e: Exception) {
-//            DEVICE_ID = FirebaseInstanceId.getInstance().getId();;
-            Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+            "0"
         }
 
-        if (deviceIdStr == null) {
-            deviceIdStr = "0"
-        }
-        return ("$deviceIdStr'!'${Build.BRAND}${Build.MODEL}")
+        // Hardware metadata helps distinguish devices even if ANDROID_ID is identical (rare but happens)
+        return "$baseId'!'${Build.BRAND}${Build.MODEL}"
     }
 
-    fun setDeviceUniqueId(mContext: Context, uniqueId: String): Boolean {
+    /**
+     * Persistently sets a custom unique identifier (e.g., a server token).
+     */
+    fun setDeviceUniqueId(context: Context, uniqueId: String): Boolean {
         return true
     }
 
-    fun getOsDetails(mContext: Context): Map<String, Any> {
-        return mapOf<String, Any>(
+    fun getOsDetails(context: Context): Map<String, Any> {
+        return mapOf(
             "platform" to "android",
             "manufacturer" to Build.MANUFACTURER,
+            "brand" to Build.BRAND,
             "os_version" to Build.VERSION.RELEASE,
             "device_model" to Build.MODEL,
-            "sdk_version" to Build.VERSION.SDK_INT.toString(),
-//            "brand" to Build.BRAND
+            "sdk_version" to Build.VERSION.SDK_INT.toString()
         )
     }
 
-//    fun getBatteryPercentage(mContext: Context, callBack: BatteryCallback) {
-//
-//        val br: BroadcastReceiver = object : BroadcastReceiver() {
-//            override fun onReceive(context: Context?, intent: Intent) {
-//                //context.unregisterReceiver(this);
-//                val currentLevel: Int = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-//                val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-//                var level = -1
-//                if (currentLevel >= 0 && scale > 0) {
-//                    level = currentLevel * 100 / scale
-//                }
-//                callBack.onReceive(level)
-//            }
-//        }
-//        val batteryLevelFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-//        (mContext as MainActivity).registerReceiver(br, batteryLevelFilter)
-//    }
-
-
     fun getBatteryLevel(context: Context): Int {
-        return getBatteryProperty(context, BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        return try {
+            val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        } catch (e: Exception) {
+            -1
+        }
     }
-
-    private fun getBatteryProperty(context: Context, property: Int): Int {
-        val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-        return batteryManager.getIntProperty(property)
-    }
-
 
     fun openFile(context: Context, filePath: String): Boolean {
         if (filePath.isBlank()) return false
-
         val file = File(filePath)
         if (!file.exists()) return false
 
         val mimeType = getMimeType(file) ?: "*/*"
 
         return try {
-            val uri: Uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.provider",
-                file
-            )
-
+            val uri: Uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, mimeType)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) // ✅ ALWAYS
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-
             val chooser = Intent.createChooser(intent, "Open file with").apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(chooser)
             true
-
         } catch (e: Exception) {
             e.printStackTrace()
             false
         }
     }
 
-
-    // Function to get the MIME type based on file extension
     private fun getMimeType(file: File): String? {
-        // Get the file extension from the file object
-        val fileExtension = file.extension
-
-        // Get the MIME type from the extension
-        return if (fileExtension.isNotEmpty()) {
-            MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExtension.lowercase())
-        } else {
-            null
-        }
+        val extension = file.extension
+        return if (extension.isNotEmpty()) {
+            MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.lowercase())
+        } else null
     }
-
-//    fun launchNativeCamera(
-//        context: Context,
-//        result: MethodChannel.Result,
-//        arguments: MethodCall,
-//        cameraRequestCode: Int
-//    ) {
-//        channelSuccess = result
-//        mContext = context
-//        val isFront: Boolean = arguments.argument<Boolean>("isFront") == true
-////        val camType: String = arguments.argument<String>("type").toString()
-////        val isGallery: Boolean = (camType == "gallery")
-//        val intent = Intent(context as MainActivity, CameraActivity::class.java)
-//        intent.putExtra("isFrontFace", isFront)
-//        startActivityForResult(context, intent, cameraRequestCode, null)
-//
-//    }
 }
