@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts.StartActivityFo
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import disable_battery_optimizations.managers.BatteryOptimizationManager
+import disable_battery_optimizations.managers.KillerManager
 import disable_battery_optimizations.models.OptimizationVerificationStatus
 import disable_battery_optimizations.utils.BatteryOptimizationUtil
 import disable_battery_optimizations.utils.PrefKeys
@@ -97,14 +98,16 @@ object BatteryOptimizationHelper {
 
         BatteryOptimizationUtil.showBatteryOptimizationDialog(
             activity,
-            disable_battery_optimizations.managers.KillerManager.Actions.ACTION_AUTOSTART,
+            KillerManager.Actions.ACTION_AUTOSTART,
             title, content,
             object : BatteryOptimizationUtil.OnOptimizationActionCallback {
                 override fun onAccepted() {
                     PrefUtils.saveToPrefs(activity, PrefKeys.IS_MAN_AUTO_START_ACCEPTED, true)
                     callback.onAccepted()
                 }
-                override fun onCanceled() = callback.onCanceled()
+                override fun onCanceled() {
+                    callback.onCanceled()
+                }
             })
     }
 
@@ -123,14 +126,16 @@ object BatteryOptimizationHelper {
 
         BatteryOptimizationUtil.showBatteryOptimizationDialog(
             activity,
-            disable_battery_optimizations.managers.KillerManager.Actions.ACTION_POWERSAVING,
+            KillerManager.Actions.ACTION_POWERSAVING,
             title, content,
             object : BatteryOptimizationUtil.OnOptimizationActionCallback {
                 override fun onAccepted() {
                     PrefUtils.saveToPrefs(activity, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, true)
                     callback.onAccepted()
                 }
-                override fun onCanceled() = callback.onCanceled()
+                override fun onCanceled() {
+                    callback.onCanceled()
+                }
             })
     }
 
@@ -176,21 +181,27 @@ object BatteryOptimizationHelper {
         callback: BatteryOptimizationUtil.OnOptimizationActionCallback
     ) {
         val nextStepIgnore = object : BatteryOptimizationUtil.OnOptimizationActionCallback {
-            override fun onAccepted() = showDisableBatteryOptimization(activity, callback)
-            override fun onCanceled() = showDisableBatteryOptimization(activity, callback)
+            override fun onAccepted() { showDisableBatteryOptimization(activity, callback) }
+            override fun onCanceled() { showDisableBatteryOptimization(activity, callback) }
         }
 
         val nextStepMan = object : BatteryOptimizationUtil.OnOptimizationActionCallback {
             override fun onAccepted() {
                 if (!isManBatteryOptimizationDisabled(activity)) {
                     showDisableManBatteryOptimization(activity, manBatteryTitle, manBatteryContent, nextStepIgnore)
-                } else nextStepIgnore.onAccepted()
+                } else {
+                    nextStepIgnore.onAccepted()
+                }
             }
-            override fun onCanceled() = nextStepIgnore.onAccepted()
+            override fun onCanceled() {
+                nextStepIgnore.onAccepted()
+            }
         }
 
         if (!isAutoStartEnabled(activity)) {
             showEnableAutoStart(activity, autoStartTitle, autoStartContent, nextStepMan)
-        } else nextStepMan.onAccepted()
+        } else {
+            nextStepMan.onAccepted()
+        }
     }
 }
