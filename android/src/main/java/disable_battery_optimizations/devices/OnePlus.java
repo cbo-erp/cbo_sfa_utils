@@ -101,6 +101,4 @@ public class OnePlus extends DeviceAbstract {
         return "OnePlus Model: " + Build.MODEL + " OxygenOS: " + Build.VERSION.RELEASE;
     }
 
-    @Override public int getHelpImagePowerSaving() { return 0; }
-    @Override public int getHelpImageAutoStart() { return 0; }
 }

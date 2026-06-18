@@ -93,7 +93,4 @@ public class Asus extends DeviceAbstract {
         return "Asus Model: " + Build.MODEL;
     }
 
-    @Override public int getHelpImageAutoStart() { return 0; }
-    @Override public int getHelpImageNotification() { return 0; }
-    @Override public int getHelpImagePowerSaving() { return 0; }
 }

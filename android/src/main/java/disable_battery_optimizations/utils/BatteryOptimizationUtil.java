@@ -58,7 +58,7 @@ public class BatteryOptimizationUtil {
         return intent.resolveActivity(context.getPackageManager()) == null ? getAppSettingsIntent(context) : intent;
     }
 
-    public static void showBatteryOptimizationDialog(final ComponentActivity context, final KillerManager.Actions action, String titleMessage, final String contentMessage, final OnOptimizationActionCallback callback) {
+    public static void showBatteryOptimizationDialog(final ComponentActivity context, final KillerManager.Actions action, String titleMessage,  final OnOptimizationActionCallback callback) {
 
         if (KillerManager.isActionAvailable(context, action)) {
             if (titleMessage == null || titleMessage.isEmpty()) {
@@ -71,8 +71,7 @@ public class BatteryOptimizationUtil {
                         .setContext(context)
                         .setDontShowAgain(false)
                         .setTitleMessage(finalTitleMessage)
-                        .setContentMessage(contentMessage)
-                        .setPositiveMessage("Ok")
+//                        .setPositiveMessage("Ok")
                         .setOnPositiveCallback(view -> {
                             callback.onAccepted();
                         }).setOnNegativeCallback((view) -> {

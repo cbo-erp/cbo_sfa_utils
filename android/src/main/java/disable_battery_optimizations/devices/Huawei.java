@@ -108,6 +108,4 @@ public class Huawei extends DeviceAbstract {
         return "Huawei Model: " + Build.MODEL;
     }
 
-    @Override public int getHelpImagePowerSaving() { return 0; }
-    @Override public int getHelpImageAutoStart() { return 0; }
 }

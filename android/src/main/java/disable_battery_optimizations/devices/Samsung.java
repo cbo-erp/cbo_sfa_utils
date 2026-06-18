@@ -1,5 +1,6 @@
 package disable_battery_optimizations.devices;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -12,6 +13,15 @@ import disable_battery_optimizations.utils.ActionsUtils;
 import disable_battery_optimizations.utils.Manufacturer;
 
 public class Samsung extends DeviceAbstract {
+
+    private static final ComponentName[] BATTERY_SETTINGS = {
+            new ComponentName("com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity"),
+            new ComponentName("com.samsung.android.sm_cn", "com.samsung.android.sm.ui.battery.BatteryActivity"),
+            new ComponentName("com.samsung.android.sm", "com.samsung.android.sm.ui.battery.BatteryActivity"),
+            new ComponentName("com.samsung.android.sm", "com.samsung.android.sm.ui.dashboard.SmartManagerDashBoardActivity")
+    };
+
+    private static final String ACTION_BATTERY = "com.samsung.android.sm.ACTION_BATTERY";
 
     @Override
     public boolean isThatRom() {

@@ -1,5 +1,6 @@
 package disable_battery_optimizations.devices;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -13,6 +14,22 @@ import disable_battery_optimizations.utils.ActionsUtils;
 import disable_battery_optimizations.utils.Manufacturer;
 
 public class Xiaomi extends DeviceAbstract {
+
+    private static final ComponentName[] AUTO_START = {
+            new ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+            new ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartMainActivity")
+    };
+
+    private static final ComponentName[] POWER_SAVE = {
+            new ComponentName("com.miui.powerkeeper", "com.miui.powerkeeper.ui.HiddenAppsConfigActivity"),
+            new ComponentName("com.miui.securitycenter", "com.miui.powercenter.PowerSettings"),
+            new ComponentName("com.miui.powerkeeper", "com.miui.powerkeeper.ui.HiddenAppsContainerManagementActivity")
+    };
+
+    private static final String ACTION_POWER_HIDE_LIST = "miui.intent.action.POWER_HIDE_MODE_APP_LIST";
+    private static final String ACTION_OP_AUTO_START = "miui.intent.action.OP_AUTO_START";
+
+
 
     @Override
     public boolean isThatRom() {
@@ -40,13 +57,13 @@ public class Xiaomi extends DeviceAbstract {
     @Override
     public Intent getActionPowerSaving(Context context) {
         Intent intent = ActionsUtils.firstAvailableIntent(context, Arrays.asList(
-                ActionsUtils.createIntent().setComponent(XiaomiConstants.POWER_SAVE[0]),
-                ActionsUtils.createIntent().setComponent(XiaomiConstants.POWER_SAVE[1]),
-                ActionsUtils.createIntent().setComponent(XiaomiConstants.POWER_SAVE[2])
+                ActionsUtils.createIntent().setComponent(POWER_SAVE[0]),
+                ActionsUtils.createIntent().setComponent(POWER_SAVE[1]),
+                ActionsUtils.createIntent().setComponent(POWER_SAVE[2])
         ));
 
         if (intent == null) {
-            intent = ActionsUtils.createIntent().setAction(XiaomiConstants.ACTION_POWER_HIDE_LIST);
+            intent = ActionsUtils.createIntent().setAction(ACTION_POWER_HIDE_LIST);
             intent.putExtra("package_name", context.getPackageName());
             intent.putExtra("package_label", context.getApplicationInfo().loadLabel(context.getPackageManager()).toString());
             if (!ActionsUtils.isIntentAvailable(context, intent)) {
@@ -60,9 +77,9 @@ public class Xiaomi extends DeviceAbstract {
     @Override
     public Intent getActionAutoStart(Context context) {
         return ActionsUtils.firstAvailableIntent(context, Arrays.asList(
-                ActionsUtils.createIntent().setComponent(XiaomiConstants.AUTO_START[0]),
-                ActionsUtils.createIntent().setComponent(XiaomiConstants.AUTO_START[1]),
-                ActionsUtils.createIntent().setAction(XiaomiConstants.ACTION_OP_AUTO_START).addCategory(Intent.CATEGORY_DEFAULT)
+                ActionsUtils.createIntent().setComponent(AUTO_START[0]),
+                ActionsUtils.createIntent().setComponent(AUTO_START[1]),
+                ActionsUtils.createIntent().setAction(ACTION_OP_AUTO_START).addCategory(Intent.CATEGORY_DEFAULT)
         ));
     }
 

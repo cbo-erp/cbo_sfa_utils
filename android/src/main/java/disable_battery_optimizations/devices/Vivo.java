@@ -1,5 +1,6 @@
 package disable_battery_optimizations.devices;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -15,6 +16,21 @@ import disable_battery_optimizations.utils.ActionsUtils;
 import disable_battery_optimizations.utils.Manufacturer;
 
 public class Vivo extends DeviceAbstract {
+
+    private static final ComponentName[] AUTOSTART = {
+            new ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"),
+            new ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager"),
+            new ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"),
+            new ComponentName("com.vivo.abe", "com.vivo.applicationbehaviorengine.ui.ExcessivePowerManagerActivity"),
+            new ComponentName("com.vivo.powermanager", "com.vivo.powermanager.activity.BgStartUpManagerActivity"),
+            new ComponentName("com.iqoo.secure", "com.iqoo.secure.MainGuideActivity")
+    };
+
+    private static final ComponentName[] POWER_SAVE = {
+            new ComponentName("com.vivo.abe", "com.vivo.applicationbehaviorengine.ui.ExcessivePowerManagerActivity"),
+            new ComponentName("com.vivo.powermanager", "com.vivo.powermanager.activity.PowerSavingActivity"),
+            new ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity")
+    };
 
     @Override
     public boolean isThatRom() {
@@ -41,9 +57,9 @@ public class Vivo extends DeviceAbstract {
     @Override
     public Intent getActionPowerSaving(Context context) {
         return ActionsUtils.firstAvailableIntent(context, Arrays.asList(
-                ActionsUtils.createIntent().setComponent(VivoConstants.POWER_SAVE[0]),
-                ActionsUtils.createIntent().setComponent(VivoConstants.POWER_SAVE[1]),
-                ActionsUtils.createIntent().setComponent(VivoConstants.POWER_SAVE[2]),
+                ActionsUtils.createIntent().setComponent(POWER_SAVE[0]),
+                ActionsUtils.createIntent().setComponent(POWER_SAVE[1]),
+                ActionsUtils.createIntent().setComponent(POWER_SAVE[2]),
                 ActionsUtils.openApplicationInfo(context)
         ));
     }
@@ -51,12 +67,12 @@ public class Vivo extends DeviceAbstract {
     @Override
     public Intent getActionAutoStart(Context context) {
         return ActionsUtils.firstAvailableIntent(context, Arrays.asList(
-                ActionsUtils.createIntent().setComponent(VivoConstants.AUTOSTART[0]),
-                ActionsUtils.createIntent().setComponent(VivoConstants.AUTOSTART[1]),
-                ActionsUtils.createIntent().setComponent(VivoConstants.AUTOSTART[2]),
-                ActionsUtils.createIntent().setComponent(VivoConstants.AUTOSTART[3]),
-                ActionsUtils.createIntent().setComponent(VivoConstants.AUTOSTART[4]),
-                ActionsUtils.createIntent().setComponent(VivoConstants.AUTOSTART[5])
+                ActionsUtils.createIntent().setComponent(AUTOSTART[0]),
+                ActionsUtils.createIntent().setComponent(AUTOSTART[1]),
+                ActionsUtils.createIntent().setComponent(AUTOSTART[2]),
+                ActionsUtils.createIntent().setComponent(AUTOSTART[3]),
+                ActionsUtils.createIntent().setComponent(AUTOSTART[4]),
+                ActionsUtils.createIntent().setComponent(AUTOSTART[5])
         ));
     }
 
@@ -70,7 +86,7 @@ public class Vivo extends DeviceAbstract {
                         "Select 'Background Power Consumption Management'",
                         "Find our app and select 'High Background Power Consumption'"
                 ),
-                R.drawable.vivo_power_save,
+                0,
                 null,
                 "Settings might vary across Funtouch OS versions."
         );
@@ -86,7 +102,7 @@ public class Vivo extends DeviceAbstract {
                         "Select 'Autostart'",
                         "Toggle the switch for our app"
                 ),
-                R.drawable.vivo_auto_start,
+                0,
                 null,
                 null
         );
@@ -97,15 +113,6 @@ public class Vivo extends DeviceAbstract {
         return "Vivo Model: " + Build.MODEL + " ROM: " + Build.DISPLAY;
     }
 
-    @Override
-    public int getHelpImagePowerSaving() {
-        return R.drawable.vivo_power_save;
-    }
-
-    @Override
-    public int getHelpImageAutoStart() {
-        return R.drawable.vivo_auto_start;
-    }
 
     @Override
     public Intent getActionNotification(Context context) {
