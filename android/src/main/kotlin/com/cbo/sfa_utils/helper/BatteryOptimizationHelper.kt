@@ -74,7 +74,6 @@ object BatteryOptimizationHelper {
             activity,
             KillerManager.Actions.ACTION_POWERSAVING,
             "Battery Optimization Guide",
-            null, 
             object : BatteryOptimizationUtil.OnOptimizationActionCallback {
                 override fun onAccepted() {
                     batteryLauncherCallback = callback
@@ -107,7 +106,6 @@ object BatteryOptimizationHelper {
             activity,
             KillerManager.Actions.ACTION_AUTOSTART,
             "Auto Start Guide",
-            null,
             object : BatteryOptimizationUtil.OnOptimizationActionCallback {
                 override fun onAccepted() {
                     batteryLauncherCallback = callback
@@ -138,7 +136,6 @@ object BatteryOptimizationHelper {
             activity,
             KillerManager.Actions.ACTION_POWERSAVING,
             "Background Performance Guide",
-            null,
             object : BatteryOptimizationUtil.OnOptimizationActionCallback {
                 override fun onAccepted() {
                     batteryLauncherCallback = callback
