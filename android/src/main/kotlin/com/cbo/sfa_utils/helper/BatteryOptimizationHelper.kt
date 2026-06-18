@@ -140,6 +140,34 @@ object BatteryOptimizationHelper {
         return false
     }
 
+    private fun launchIntentAndVerify(
+        activity: ComponentActivity,
+        intent: Intent?,
+        callback: BatteryOptimizationUtil.OnOptimizationActionCallback,
+        intentName: String
+    ) {
+        if (intent == null) {
+            LogUtils.i("BatteryOptHelper", "$intentName intent is null, calling onCanceled")
+            callback.onCanceled()
+            return
+        }
+
+        batteryLauncherCallback = callback
+        try {
+            if (batteryLauncher != null) {
+                LogUtils.i("BatteryOptHelper", "🚀 Launching $intentName via ActivityResult")
+                batteryLauncher?.launch(intent)
+            } else {
+                LogUtils.i("BatteryOptHelper", "🚀 Launching $intentName via startActivity (fallback)")
+                activity.startActivity(intent)
+                attachLifecycleObserver(activity)
+            }
+        } catch (e: ActivityNotFoundException) {
+            LogUtils.e("BatteryOptHelper", "Activity not found for $intentName: ${e.message}")
+            callback.onCanceled()
+        }
+    }
+
     private fun showBatteryOptimizationDialog(
         activity: ComponentActivity,
         callback: BatteryOptimizationUtil.OnOptimizationActionCallback
@@ -155,23 +183,9 @@ object BatteryOptimizationHelper {
             "Battery Optimization Guide",
             object : BatteryOptimizationUtil.OnOptimizationActionCallback {
                 override fun onAccepted() {
-                    batteryLauncherCallback = callback
                     val intent = BatteryOptimizationManager.getInstance(activity).dozeIntent
                             ?: BatteryOptimizationUtil.getAppSettingsIntent(activity)
-
-                    try {
-                        if (batteryLauncher != null) {
-                            LogUtils.i("BatteryOptHelper", "🚀 Launching doze intent via ActivityResult")
-                            batteryLauncher?.launch(intent)
-                        } else {
-                            LogUtils.i("BatteryOptHelper", "🚀 Launching doze intent via startActivity")
-                            activity.startActivity(intent)
-                            attachLifecycleObserver(activity)
-                        }
-                    } catch (e: ActivityNotFoundException) {
-                        LogUtils.e("BatteryOptHelper", "Activity not found for doze intent: ${e.message}")
-                        callback.onCanceled()
-                    }
+                    launchIntentAndVerify(activity, intent, callback, "doze")
                 }
                 override fun onCanceled() = callback.onCanceled()
             }
@@ -195,25 +209,7 @@ object BatteryOptimizationHelper {
             "Auto Start Guide",
             object : BatteryOptimizationUtil.OnOptimizationActionCallback {
                 override fun onAccepted() {
-                    batteryLauncherCallback = callback
-                    manager.autoStartIntent?.let {
-                        try {
-                            if (batteryLauncher != null) {
-                                LogUtils.i("BatteryOptHelper", "🚀 Launching auto-start intent via ActivityResult")
-                                batteryLauncher?.launch(it)
-                            } else {
-                                LogUtils.i("BatteryOptHelper", "🚀 Launching auto-start intent via startActivity")
-                                activity.startActivity(it)
-                                attachLifecycleObserver(activity)
-                            }
-                        } catch (e: ActivityNotFoundException) {
-                            LogUtils.e("BatteryOptHelper", "Activity not found for auto-start intent: ${e.message}")
-                            callback.onCanceled()
-                        }
-                    } ?: run {
-                        LogUtils.i("BatteryOptHelper", "Auto-start intent became null unexpectedly")
-                        callback.onAccepted()
-                    }
+                    launchIntentAndVerify(activity, manager.autoStartIntent, callback, "auto-start")
                 }
                 override fun onCanceled() = callback.onCanceled()
             }
@@ -237,25 +233,7 @@ object BatteryOptimizationHelper {
             "Background Performance Guide",
             object : BatteryOptimizationUtil.OnOptimizationActionCallback {
                 override fun onAccepted() {
-                    batteryLauncherCallback = callback
-                    manager.backgroundRestrictionIntent?.let {
-                        try {
-                            if (batteryLauncher != null) {
-                                LogUtils.i("BatteryOptHelper", "🚀 Launching background restriction intent via ActivityResult")
-                                batteryLauncher?.launch(it)
-                            } else {
-                                LogUtils.i("BatteryOptHelper", "🚀 Launching background restriction intent via startActivity")
-                                activity.startActivity(it)
-                                attachLifecycleObserver(activity)
-                            }
-                        } catch (e: ActivityNotFoundException) {
-                            LogUtils.e("BatteryOptHelper", "Activity not found for background restriction intent: ${e.message}")
-                            callback.onCanceled()
-                        }
-                    } ?: run {
-                        LogUtils.i("BatteryOptHelper", "Background restriction intent became null unexpectedly")
-                        callback.onAccepted()
-                    }
+                    launchIntentAndVerify(activity, manager.backgroundRestrictionIntent, callback, "background-restriction")
                 }
                 override fun onCanceled() = callback.onCanceled()
             }
@@ -327,63 +305,33 @@ object BatteryOptimizationHelper {
         val callback = batteryLauncherCallback
         batteryLauncherCallback = null
 
-        val manager = BatteryOptimizationManager.getInstance(activity)
-        val capabilities = manager.currentDevice?.getCapabilities(activity)
+        LogUtils.i("BatteryOptHelper", "Verifying battery optimization settings after user returns from settings")
 
-        LogUtils.i("BatteryOptHelper", "Device: ${manager.currentDevice?.javaClass?.simpleName}, " +
-                "Manual confirmation: ${capabilities?.requiresManualConfirmation}")
-
-        // Check DOZE MODE specifically
-        val dozeStatus = manager.currentDevice?.checkBatteryOptimizationStatus(activity)
-        if (dozeStatus == OptimizationVerificationStatus.VERIFIED) {
-            LogUtils.i("BatteryOptHelper", "✅ Doze verification SUCCESS: Battery optimization is disabled")
-            PrefUtils.saveToPrefs(activity, PrefKeys.IS_BATTERY_OPTIMIZATION_ACCEPTED, true)
-            callback?.onAccepted()
-            return
-        } else if (dozeStatus == OptimizationVerificationStatus.FAILED &&
-                   capabilities?.requiresManualConfirmation == true) {
-            LogUtils.i("BatteryOptHelper", "✅ Manual-confirm device: User visited settings, accepting doze")
+        // Check DOZE - if disabled, user successfully changed it
+        if (isBatteryOptimizationDisabled(activity)) {
+            LogUtils.i("BatteryOptHelper", "✅ Doze verification SUCCESS")
             PrefUtils.saveToPrefs(activity, PrefKeys.IS_BATTERY_OPTIMIZATION_ACCEPTED, true)
             callback?.onAccepted()
             return
         }
 
-        // Check AUTO-START specifically
-        val autoStartStatus = manager.currentDevice?.checkAutoStartStatus(activity)
-        if (autoStartStatus == OptimizationVerificationStatus.VERIFIED) {
+        // Check AUTO-START - if enabled (properly configured), user successfully changed it
+        if (isAutoStartEnabled(activity)) {
             LogUtils.i("BatteryOptHelper", "✅ Auto-start verification SUCCESS")
             PrefUtils.saveToPrefs(activity, PrefKeys.IS_MAN_AUTO_START_ACCEPTED, true)
             callback?.onAccepted()
             return
-        } else if (autoStartStatus == OptimizationVerificationStatus.FAILED &&
-                   capabilities?.requiresManualConfirmation == true) {
-            LogUtils.i("BatteryOptHelper", "✅ Manual-confirm device: User visited settings, accepting auto-start")
-            PrefUtils.saveToPrefs(activity, PrefKeys.IS_MAN_AUTO_START_ACCEPTED, true)
-            callback?.onAccepted()
-            return
         }
 
-        // Check BACKGROUND RESTRICTION specifically
-        val bgStatus = manager.currentDevice?.checkBackgroundRestrictionStatus(activity)
-        if (bgStatus == OptimizationVerificationStatus.VERIFIED) {
+        // Check BACKGROUND RESTRICTION - if disabled, user successfully changed it
+        if (isManBatteryOptimizationDisabled(activity)) {
             LogUtils.i("BatteryOptHelper", "✅ Background restriction verification SUCCESS")
             PrefUtils.saveToPrefs(activity, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, true)
             callback?.onAccepted()
             return
-        } else if (bgStatus == OptimizationVerificationStatus.FAILED &&
-                   capabilities?.requiresManualConfirmation == true) {
-            LogUtils.i("BatteryOptHelper", "✅ Manual-confirm device: User visited settings, accepting background restriction")
-            PrefUtils.saveToPrefs(activity, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, true)
-            callback?.onAccepted()
-            return
-        } else if (bgStatus == OptimizationVerificationStatus.UNKNOWN) {
-            LogUtils.i("BatteryOptHelper", "✅ Background restriction: User visited settings (status unverifiable on this device, accepting)")
-            PrefUtils.saveToPrefs(activity, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, true)
-            callback?.onAccepted()
-            return
         }
 
-        // Verification failed - user likely cancelled without changing anything
+        // None of the settings passed verification - user likely cancelled
         LogUtils.i("BatteryOptHelper", "❌ Verification FAILED: Setting not applied, user likely cancelled")
         callback?.onCanceled()
     }
