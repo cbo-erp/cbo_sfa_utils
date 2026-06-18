@@ -21,6 +21,7 @@ public class DeviceRegistry {
         register(new Samsung());
         register(new Xiaomi());
         register(new ZTE());
+        register(new Transsion());
     }
 
     public static void register(DeviceBase device) {

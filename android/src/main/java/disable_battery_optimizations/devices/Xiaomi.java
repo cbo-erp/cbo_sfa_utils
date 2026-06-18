@@ -4,8 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-import com.cbo.sfa_utils.R;
-
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -18,9 +16,9 @@ public class Xiaomi extends DeviceAbstract {
 
     @Override
     public boolean isThatRom() {
-        return Build.BRAND.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.MANUFACTURER.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.FINGERPRINT.toLowerCase().contains(getDeviceManufacturer().toString());
+        return Build.BRAND.equalsIgnoreCase("xiaomi") || Build.MANUFACTURER.equalsIgnoreCase("xiaomi") ||
+                Build.BRAND.equalsIgnoreCase("redmi") || Build.MANUFACTURER.equalsIgnoreCase("redmi") ||
+                Build.BRAND.equalsIgnoreCase("poco") || Build.MANUFACTURER.equalsIgnoreCase("poco");
     }
 
     @Override
@@ -34,7 +32,7 @@ public class Xiaomi extends DeviceAbstract {
                 .setSupportsDoze(true)
                 .setSupportsAutoStart(true)
                 .setSupportsDeepOptimization(true)
-                .setCanVerifyDoze(false) // MIUI ignores standard doze for its own settings
+                .setCanVerifyDoze(false)
                 .setRequiresManualConfirmation(true)
                 .build();
     }
@@ -72,11 +70,14 @@ public class Xiaomi extends DeviceAbstract {
     public BatteryGuide getPowerSavingGuide(Context context) {
         return new BatteryGuide(
                 "Xiaomi Battery Settings",
-                "Set to 'No restrictions' to ensure reliable background service.",
-                Collections.singletonList("Find the app, and select 'No restrictions'"),
-                R.drawable.xiaomi,
-                null,
-                "HyperOS/MIUI may kill apps if battery saver is enabled."
+                "Ensure reliable background tracking on HyperOS/MIUI.",
+                Arrays.asList(
+                        "1. Open App Info for 'Savera RM'",
+                        "2. Tap on 'Battery saver'",
+                        "3. Select 'No restrictions'"
+                ),
+                0, null,
+                "Note: Standard Android optimization settings are often overridden by Xiaomi's PowerKeeper."
         );
     }
 
@@ -85,10 +86,8 @@ public class Xiaomi extends DeviceAbstract {
         return new BatteryGuide(
                 "Xiaomi Auto Start",
                 "Allow the app to start automatically.",
-                Collections.singletonList("Toggle the switch for our app in the Auto-start list"),
-                R.drawable.xiaomi,
-                null,
-                null
+                Collections.singletonList("1. Toggle 'Autostart' to ON in the App Info screen"),
+                0, null, null
         );
     }
 
@@ -97,18 +96,7 @@ public class Xiaomi extends DeviceAbstract {
         return "Xiaomi/HyperOS Model: " + Build.MODEL;
     }
 
-    @Override
-    public int getHelpImagePowerSaving() {
-        return R.drawable.xiaomi;
-    }
-
-    @Override
-    public int getHelpImageAutoStart() {
-        return R.drawable.xiaomi;
-    }
-
-    @Override
-    public Intent getActionNotification(Context context) {
-        return null;
-    }
+    @Override public int getHelpImagePowerSaving() { return 0; }
+    @Override public int getHelpImageAutoStart() { return 0; }
+    @Override public Intent getActionNotification(Context context) { return null; }
 }

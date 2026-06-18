@@ -32,9 +32,7 @@ public class Meizu extends DeviceAbstract {
 
     @Override
     public boolean isThatRom() {
-        return Build.BRAND.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.MANUFACTURER.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.FINGERPRINT.toLowerCase().contains(getDeviceManufacturer().toString());
+        return Build.BRAND.equalsIgnoreCase("meizu") || Build.MANUFACTURER.equalsIgnoreCase("meizu");
     }
 
     @Override
@@ -47,7 +45,6 @@ public class Meizu extends DeviceAbstract {
         return new DeviceCapabilities.Builder()
                 .setSupportsDoze(true)
                 .setSupportsAutoStart(true)
-                .setSupportsNotificationOptimization(true)
                 .build();
     }
 
@@ -85,26 +82,17 @@ public class Meizu extends DeviceAbstract {
     }
 
     @Override
-    public Intent getActionNotification(Context context) {
-        MEIZU_SECURITY_CENTER_VERSION mSecVersion = getMeizuSecVersion(context);
-        Intent intent = ActionsUtils.createIntent();
-        if (mSecVersion == MEIZU_SECURITY_CENTER_VERSION.SEC_3_7 || mSecVersion == MEIZU_SECURITY_CENTER_VERSION.SEC_4_1) {
-            intent.setComponent(new ComponentName(MEIZU_DEFAULT_PACKAGE, MEIZU_COMPONENTS[3]));
-            return intent;
-        } else {
-            return getDefaultSettingAction(context);
-        }
-    }
-
-    @Override
     public BatteryGuide getPowerSavingGuide(Context context) {
         return new BatteryGuide(
-                "Meizu Battery Settings",
-                "Ensure the app is allowed to run in the background.",
-                Collections.singletonList("Go to Security -> Battery -> App Power Management and allow our app"),
-                0,
-                null,
-                null
+                "Meizu Battery Management",
+                "Allow the app to run in the background without being killed.",
+                Arrays.asList(
+                        "1. Open 'Security' app",
+                        "2. Tap on 'Battery'",
+                        "3. Select 'App Power Management'",
+                        "4. Find 'Savera RM' and allow background running"
+                ),
+                0, null, null
         );
     }
 
@@ -113,10 +101,9 @@ public class Meizu extends DeviceAbstract {
         return "Meizu Sec Version: " + getMeizuSecVersion(context);
     }
 
-    @Override
-    public int getHelpImagePowerSaving() {
-        return 0;
-    }
+    @Override public int getHelpImagePowerSaving() { return 0; }
+    @Override public int getHelpImageAutoStart() { return 0; }
+    @Override public Intent getActionNotification(Context context) { return null; }
 
     private enum MEIZU_SECURITY_CENTER_VERSION {
         SEC_2_2, SEC_3_4, SEC_3_6, SEC_3_7, SEC_4_1

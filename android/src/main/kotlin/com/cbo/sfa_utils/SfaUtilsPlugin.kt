@@ -5,18 +5,20 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.core.app.ActivityCompat
 import com.cbo.sfa_utils.helper.BatteryOptimizationHelper
 import com.cbo.sfa_utils.helper.HelperUtils
 import com.cbo.sfa_utils.helper.LocationHelper
+import com.cbo.sfa_utils.helper.UtilsCallback
 import disable_battery_optimizations.utils.BatteryOptimizationUtil
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -31,6 +33,8 @@ import java.io.File
 /**
  * SfaUtilsPlugin - Production Grade Native Bridge.
  * Handles Battery, Location, Recording, and Identity for Android 8-15+.
+ *
+ * Optimized for SFA requirements: Thread-safe responses and Interactive Text Guides.
  */
 class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
@@ -49,7 +53,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var recordingState = RecordingState.IDLE
 
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val tag = "SfaUtilsPlugin"
+    private val TAG = "SfaUtilsPlugin"
 
     // region Plugin Lifecycle
 
@@ -70,6 +74,8 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         recorder?.release()
         recorder = null
         applicationContext = null
+        applicationActivity = null
+        componentActivity = null
     }
 
     // endregion
@@ -91,7 +97,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     if (resultCode == Activity.RESULT_OK) {
                         safeSuccess(result, true)
                     } else {
-                        safeError(result, "PERMISSION_DENIED", "User denied the GPS request", "")
+                        safeError(result, "PERMISSION_DENIED", "User denied the GPS request", null)
                     }
                 }
                 return@addActivityResultListener true
@@ -116,45 +122,46 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     // endregion
 
-    // region Method Call Handler
+    // region Method Call Dispatcher
 
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
             // Identity & OS
-            SfaMethods.GET_IMEI -> getMobileIMEI(result)
+            SfaMethods.GET_IMEI -> getMobileIMEI(call, result)
             SfaMethods.SET_IMEI -> setMobileIMEI(call, result)
-            SfaMethods.OS_DETAIL -> getOsDetails(result)
+            SfaMethods.OS_DETAIL -> getOsDetails(call, result)
 
             // System State
-            SfaMethods.BATTERY_PERCENTAGE -> getBatteryPercentage(result)
-            SfaMethods.TIME_AUTO -> timeIsAuto(result)
-            SfaMethods.TIMEZONE_AUTO -> timeZoneIsAuto(result)
-            SfaMethods.DEVELOPER_MODE -> isDeveloperModeOn(result)
+            SfaMethods.BATTERY_PERCENTAGE -> getBatteryPercentage(call, result)
+            SfaMethods.TIME_AUTO -> timeIsAuto(call, result)
+            SfaMethods.TIMEZONE_AUTO -> timeZoneIsAuto(call, result)
+            SfaMethods.DEVELOPER_MODE -> isDeveloperModeOn(call, result)
 
             // Settings & Files
-            SfaMethods.OPEN_SETTINGS -> mainHandler.post { openSettings(result) }
-            SfaMethods.OPEN_FILE -> mainHandler.post { openFile(call, result) }
+            SfaMethods.OPEN_SETTINGS -> openSettings(call, result)
+            SfaMethods.OPEN_FILE -> openFile(call, result)
 
             // Location
-            SfaMethods.GET_LOCATION -> getLocation(result)
-            SfaMethods.REQUEST_GPS -> mainHandler.post { requestGPS(result) }
-            SfaMethods.LOCATION_PERMISSION -> hasLocationPermission(result)
+            SfaMethods.GET_LOCATION -> getLocation(call, result)
+            SfaMethods.REQUEST_GPS -> requestGPS(call, result)
+            SfaMethods.LOCATION_PERMISSION -> hasLocationPermission(call, result)
 
             // Audio Recording
-            SfaMethods.START_RECORDING -> startRecording(result)
-            SfaMethods.STOP_RECORDING -> stopRecording(result)
-            SfaMethods.PAUSE_RECORDING -> pauseRecording(result)
-            SfaMethods.RESUME_RECORDING -> resumeRecording(result)
+            SfaMethods.START_RECORDING -> startRecording(call, result)
+            SfaMethods.STOP_RECORDING -> stopRecording(call, result)
+            SfaMethods.PAUSE_RECORDING -> pauseRecording(call, result)
+            SfaMethods.RESUME_RECORDING -> resumeRecording(call, result)
 
             // Battery Optimization
-            SfaMethods.SHOW_ENABLE_AUTO_START -> mainHandler.post { showEnableAutoStart(call, result) }
-            SfaMethods.SHOW_DISABLE_MAN_BATTERY_OPTIMIZATION -> mainHandler.post { showDisableManBatteryOptimization(call, result) }
-            SfaMethods.SHOW_DISABLE_BATTERY_OPTIMIZATION -> mainHandler.post { showDisableBatteryOptimization(result) }
-            SfaMethods.DISABLE_ALL_OPTIMIZATIONS -> mainHandler.post { disableAllOptimizations(call, result) }
-            SfaMethods.IS_AUTO_START_ENABLED -> isAutoStartEnabled(result)
-            SfaMethods.IS_BATTERY_OPTIMIZATION_DISABLED -> isBatteryOptimizationDisabled(result)
-            SfaMethods.IS_MAN_BATTERY_OPTIMIZATION_DISABLED -> isManBatteryOptimizationDisabled(result)
-            SfaMethods.IS_ALL_OPTIMIZATIONS_DISABLED -> isAllOptimizationsDisabled(result)
+            SfaMethods.IS_BATTERY_OPTIMIZATION_DISABLED -> isBatteryOptimizationDisabled(call, result)
+            SfaMethods.IS_AUTO_START_ENABLED -> isAutoStartEnabled(call, result)
+            SfaMethods.IS_MAN_BATTERY_OPTIMIZATION_DISABLED -> isManBatteryOptimizationDisabled(call, result)
+            SfaMethods.IS_ALL_OPTIMIZATIONS_DISABLED -> isAllOptimizationsDisabled(call, result)
+
+            SfaMethods.SHOW_DISABLE_BATTERY_OPTIMIZATION -> showDisableBatteryOptimization(call, result)
+            SfaMethods.SHOW_ENABLE_AUTO_START -> showEnableAutoStart(call, result)
+            SfaMethods.SHOW_DISABLE_MAN_BATTERY_OPTIMIZATION -> showDisableManBatteryOptimization(call, result)
+            SfaMethods.DISABLE_ALL_OPTIMIZATIONS -> disableAllOptimizations(call, result)
 
             else -> result.notImplemented()
         }
@@ -162,9 +169,9 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     // endregion
 
-    // region Identity & OS Methods
+    // region Identity & OS Implementation
 
-    private fun getMobileIMEI(result: Result) {
+    private fun getMobileIMEI(call: MethodCall, result: Result) {
         val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
         safeSuccess(result, HelperUtils.getDeviceUniqueId(ctx))
     }
@@ -175,33 +182,33 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         safeSuccess(result, HelperUtils.setDeviceUniqueId(ctx, token))
     }
 
-    private fun getOsDetails(result: Result) {
+    private fun getOsDetails(call: MethodCall, result: Result) {
         val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
         safeSuccess(result, HelperUtils.getOsDetails(ctx))
     }
 
     // endregion
 
-    // region System State Methods
+    // region System State Implementation
 
-    private fun getBatteryPercentage(result: Result) {
+    private fun getBatteryPercentage(call: MethodCall, result: Result) {
         val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
         safeSuccess(result, HelperUtils.getBatteryLevel(ctx))
     }
 
-    private fun timeIsAuto(result: Result) {
+    private fun timeIsAuto(call: MethodCall, result: Result) {
         val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
         val isAuto = Settings.Global.getInt(ctx.contentResolver, Settings.Global.AUTO_TIME, 0) == 1
         safeSuccess(result, isAuto)
     }
 
-    private fun timeZoneIsAuto(result: Result) {
+    private fun timeZoneIsAuto(call: MethodCall, result: Result) {
         val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
         val isAuto = Settings.Global.getInt(ctx.contentResolver, Settings.Global.AUTO_TIME_ZONE, 0) == 1
         safeSuccess(result, isAuto)
     }
 
-    private fun isDeveloperModeOn(result: Result) {
+    private fun isDeveloperModeOn(call: MethodCall, result: Result) {
         val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
         val isOn = Settings.Global.getInt(ctx.contentResolver, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1
         safeSuccess(result, isOn)
@@ -209,35 +216,39 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     // endregion
 
-    // region Settings & File Methods
+    // region Settings & Files Implementation
 
-    private fun openSettings(result: Result) {
-        val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
-        try {
-            val intent = Intent(Settings.ACTION_DATE_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            ctx.startActivity(intent)
-            safeSuccess(result, true)
-        } catch (e: Exception) {
-            safeError(result, "OPEN_SETTINGS_FAILED", e.localizedMessage, null)
+    private fun openSettings(call: MethodCall, result: Result) {
+        mainHandler.post {
+            val ctx = applicationContext ?: return@post safeError(result, "CONTEXT_ERROR", "Context null", null)
+            try {
+                val intent = Intent(Settings.ACTION_DATE_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                ctx.startActivity(intent)
+                safeSuccess(result, true)
+            } catch (e: Exception) {
+                safeError(result, "OPEN_SETTINGS_FAILED", e.localizedMessage, null)
+            }
         }
     }
 
     private fun openFile(call: MethodCall, result: Result) {
-        val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context is null", null)
-        val path = call.argument<String>("filePath") ?: ""
-        safeSuccess(result, HelperUtils.openFile(ctx, path))
+        mainHandler.post {
+            val ctx = applicationContext ?: return@post safeError(result, "CONTEXT_ERROR", "Context is null", null)
+            val path = call.argument<String>("filePath") ?: ""
+            safeSuccess(result, HelperUtils.openFile(ctx, path))
+        }
     }
 
     // endregion
 
-    // region Location Methods
+    // region Location Implementation
 
-    private fun getLocation(result: Result) {
+    private fun getLocation(call: MethodCall, result: Result) {
         val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
-        LocationHelper.getCurrentLocation(ctx) { data ->
-            if (data != null) {
-                safeSuccess(
-                    result, mapOf(
+        LocationHelper.getCurrentLocation(ctx, object : UtilsCallback<Location?> {
+            override fun onReceive(data: Location?) {
+                if (data != null) {
+                    safeSuccess(result, mapOf(
                         "latitude" to data.latitude,
                         "longitude" to data.longitude,
                         "isMock" to LocationHelper.isMockLocation(data),
@@ -247,33 +258,37 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                         "hasSpeed" to data.hasSpeed(),
                         "accuracy" to data.accuracy,
                         "hasAccuracy" to data.hasAccuracy()
-                    )
-                )
-            } else {
-                safeError(result, "LOCATION_NOT_FOUND", "Could not fetch location", null)
+                    ))
+                } else {
+                    safeError(result, "LOCATION_NOT_FOUND", "Could not fetch location", null)
+                }
             }
+        })
+    }
+
+    private fun requestGPS(call: MethodCall, result: Result) {
+        mainHandler.post {
+            val activity = applicationActivity ?: return@post safeError(result, "FAILURE", "Activity null", null)
+            val ctx = applicationContext ?: return@post safeError(result, "CONTEXT_ERROR", "Context null", null)
+
+            if (LocationHelper.isLocationEnabled(ctx)) {
+                safeSuccess(result, true)
+                return@post
+            }
+
+            methodResults[SfaMethods.REQUEST_GPS] = result
+            LocationHelper.requestGps(activity, intentCodeLocation, object : UtilsCallback<Boolean> {
+                override fun onReceive(data: Boolean) {
+                    methodResults.remove(SfaMethods.REQUEST_GPS)?.let { pending ->
+                        if (data) safeSuccess(pending, true)
+                        else safeError(pending, "GPS_DISABLED", "User refused to enable GPS", null)
+                    }
+                }
+            })
         }
     }
 
-    private fun requestGPS(result: Result) {
-        val activity = applicationActivity ?: return safeError(result, "FAILURE", "Activity null", null)
-        val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
-
-        if (LocationHelper.isLocationEnabled(ctx)) {
-            safeSuccess(result, true)
-            return
-        }
-
-        methodResults[SfaMethods.REQUEST_GPS] = result
-        LocationHelper.requestGps(activity, intentCodeLocation) { data ->
-            methodResults.remove(SfaMethods.REQUEST_GPS)?.let { pendingResult ->
-                if (data) safeSuccess(pendingResult, true)
-                else safeError(pendingResult, "GPS_DISABLED", "User refused to enable GPS", null)
-            }
-        }
-    }
-
-    private fun hasLocationPermission(result: Result) {
+    private fun hasLocationPermission(call: MethodCall, result: Result) {
         val context = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
         val fineGranted = ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val coarseGranted = ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -282,9 +297,9 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     // endregion
 
-    // region Audio Recording Methods
+    // region Recording Implementation
 
-    private fun startRecording(result: Result) {
+    private fun startRecording(call: MethodCall, result: Result) {
         try {
             if (recordingState != RecordingState.IDLE) {
                 return safeError(result, "START_ERROR", "Recording already in progress", null)
@@ -314,7 +329,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
     }
 
-    private fun stopRecording(result: Result) {
+    private fun stopRecording(call: MethodCall, result: Result) {
         try {
             recorder?.apply {
                 stop()
@@ -328,7 +343,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
     }
 
-    private fun pauseRecording(result: Result) {
+    private fun pauseRecording(call: MethodCall, result: Result) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && recordingState == RecordingState.RECORDING) {
             try {
                 recorder?.pause()
@@ -342,7 +357,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
     }
 
-    private fun resumeRecording(result: Result) {
+    private fun resumeRecording(call: MethodCall, result: Result) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && recordingState == RecordingState.PAUSED) {
             try {
                 recorder?.resume()
@@ -358,81 +373,78 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     // endregion
 
-    // region Battery Optimization Methods
+    // region Battery Optimization Implementation
 
-    private fun isBatteryOptimizationDisabled(result: Result) {
+    private fun isBatteryOptimizationDisabled(call: MethodCall, result: Result) {
         val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
         safeSuccess(result, BatteryOptimizationHelper.isBatteryOptimizationDisabled(ctx))
     }
 
-    private fun isAutoStartEnabled(result: Result) {
+    private fun isAutoStartEnabled(call: MethodCall, result: Result) {
         val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
         safeSuccess(result, BatteryOptimizationHelper.isAutoStartEnabled(ctx))
     }
 
-    private fun isManBatteryOptimizationDisabled(result: Result) {
+    private fun isManBatteryOptimizationDisabled(call: MethodCall, result: Result) {
         val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
         safeSuccess(result, BatteryOptimizationHelper.isManBatteryOptimizationDisabled(ctx))
     }
 
-    private fun isAllOptimizationsDisabled(result: Result) {
+    private fun isAllOptimizationsDisabled(call: MethodCall, result: Result) {
         val ctx = applicationContext ?: return safeError(result, "CONTEXT_ERROR", "Context null", null)
         safeSuccess(result, BatteryOptimizationHelper.isAllOptimizationsDisabled(ctx))
     }
 
-    private fun showDisableBatteryOptimization(result: Result) {
-        val activity = componentActivity ?: return safeError(result, "FAILURE", "Activity is null", null)
-        BatteryOptimizationHelper.showDisableBatteryOptimization(activity, object : BatteryOptimizationUtil.OnOptimizationActionCallback {
-            override fun onAccepted() { safeSuccess(result, true) }
-            override fun onCanceled() { safeSuccess(result, false) }
-        })
+    private fun showDisableBatteryOptimization(call: MethodCall, result: Result) {
+        mainHandler.post {
+            val activity = componentActivity ?: return@post safeError(result, "FAILURE", "Activity null", null)
+            BatteryOptimizationHelper.showDisableBatteryOptimization(activity, object : BatteryOptimizationUtil.OnOptimizationActionCallback {
+                override fun onAccepted() { safeSuccess(result, true) }
+                override fun onCanceled() { safeSuccess(result, false) }
+            })
+        }
     }
 
     private fun showEnableAutoStart(call: MethodCall, result: Result) {
-        val title = call.argument<String>("title") ?: ""
-        val content = call.argument<String>("content") ?: ""
-        val activity = componentActivity ?: return safeError(result, "FAILURE", "Activity is null", null)
-        BatteryOptimizationHelper.showEnableAutoStart(activity, title, content, object : BatteryOptimizationUtil.OnOptimizationActionCallback {
-            override fun onAccepted() { safeSuccess(result, true) }
-            override fun onCanceled() { safeSuccess(result, false) }
-        })
+        mainHandler.post {
+            val activity = componentActivity ?: return@post safeError(result, "FAILURE", "Activity null", null)
+            BatteryOptimizationHelper.showEnableAutoStart(activity, object : BatteryOptimizationUtil.OnOptimizationActionCallback {
+                override fun onAccepted() { safeSuccess(result, true) }
+                override fun onCanceled() { safeSuccess(result, false) }
+            })
+        }
     }
 
     private fun showDisableManBatteryOptimization(call: MethodCall, result: Result) {
-        val title = call.argument<String>("title") ?: ""
-        val content = call.argument<String>("content") ?: ""
-        val activity = componentActivity ?: return safeError(result, "FAILURE", "Activity is null", null)
-        BatteryOptimizationHelper.showDisableManBatteryOptimization(activity, title, content, object : BatteryOptimizationUtil.OnOptimizationActionCallback {
-            override fun onAccepted() { safeSuccess(result, true) }
-            override fun onCanceled() { safeSuccess(result, false) }
-        })
+        mainHandler.post {
+            val activity = componentActivity ?: return@post safeError(result, "FAILURE", "Activity null", null)
+            BatteryOptimizationHelper.showDisableManBatteryOptimization(activity, object : BatteryOptimizationUtil.OnOptimizationActionCallback {
+                override fun onAccepted() { safeSuccess(result, true) }
+                override fun onCanceled() { safeSuccess(result, false) }
+            })
+        }
     }
 
     private fun disableAllOptimizations(call: MethodCall, result: Result) {
-        val activity = componentActivity ?: return safeError(result, "FAILURE", "Activity is null", null)
-        BatteryOptimizationHelper.disableAllOptimizations(
-            activity,
-            call.argument("autoStartTitle") ?: "",
-            call.argument("autoStartContent") ?: "",
-            call.argument("manBatteryTitle") ?: "",
-            call.argument("manBatteryContent") ?: "",
-            object : BatteryOptimizationUtil.OnOptimizationActionCallback {
+        mainHandler.post {
+            val activity = componentActivity ?: return@post safeError(result, "FAILURE", "Activity null", null)
+            BatteryOptimizationHelper.disableAllOptimizations(activity, object : BatteryOptimizationUtil.OnOptimizationActionCallback {
                 override fun onAccepted() { safeSuccess(result, true) }
                 override fun onCanceled() { safeSuccess(result, false) }
-            }
-        )
+            })
+        }
     }
 
     // endregion
 
-    // region Thread-Safe Helpers
+    // region Helpers
 
     private fun safeSuccess(result: Result, data: Any?) {
         mainHandler.post {
             try {
                 result.success(data)
             } catch (e: IllegalStateException) {
-                Log.e(tag, "safeSuccess failed: Reply already submitted - ${e.message}")
+                Log.e(TAG, "safeSuccess failed: Reply already submitted")
             }
         }
     }
@@ -442,7 +454,7 @@ class SfaUtilsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             try {
                 result.error(code, msg, details)
             } catch (e: IllegalStateException) {
-                Log.e(tag, "safeError failed: Reply already submitted - ${e.message}")
+                Log.e(TAG, "safeError failed: Reply already submitted")
             }
         }
     }

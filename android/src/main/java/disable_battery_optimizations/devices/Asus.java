@@ -5,8 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-import com.cbo.sfa_utils.R;
-
+import java.util.Arrays;
 import java.util.Collections;
 
 import disable_battery_optimizations.models.BatteryGuide;
@@ -22,9 +21,7 @@ public class Asus extends DeviceAbstract {
 
     @Override
     public boolean isThatRom() {
-        return Build.BRAND.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.MANUFACTURER.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.FINGERPRINT.toLowerCase().contains(getDeviceManufacturer().toString());
+        return Build.BRAND.equalsIgnoreCase("asus") || Build.MANUFACTURER.equalsIgnoreCase("asus");
     }
 
     @Override
@@ -64,7 +61,17 @@ public class Asus extends DeviceAbstract {
 
     @Override
     public BatteryGuide getPowerSavingGuide(Context context) {
-        return super.getPowerSavingGuide(context);
+        return new BatteryGuide(
+                "Asus Battery Settings",
+                "Ensure the app can run without background restrictions.",
+                Arrays.asList(
+                        "1. Open 'Mobile Manager'",
+                        "2. Tap on 'PowerMaster'",
+                        "3. Select 'Battery-saving options'",
+                        "4. Disable 'Stop apps when screen is locked'"
+                ),
+                0, null, null
+        );
     }
 
     @Override
@@ -72,10 +79,12 @@ public class Asus extends DeviceAbstract {
         return new BatteryGuide(
                 "Asus Auto-start Manager",
                 "Allow the app to start automatically.",
-                Collections.singletonList("Toggle the switch for our app in the Auto-start Manager"),
-                R.drawable.asus_autostart,
-                null,
-                null
+                Arrays.asList(
+                        "1. Open 'Mobile Manager'",
+                        "2. Tap on 'Auto-start Manager'",
+                        "3. Find 'Savera RM' and toggle it to 'Allow'"
+                ),
+                0, null, null
         );
     }
 
@@ -84,13 +93,7 @@ public class Asus extends DeviceAbstract {
         return "Asus Model: " + Build.MODEL;
     }
 
-    @Override
-    public int getHelpImageAutoStart() {
-        return R.drawable.asus_autostart;
-    }
-
-    @Override
-    public int getHelpImageNotification() {
-        return R.drawable.asus_notification;
-    }
+    @Override public int getHelpImageAutoStart() { return 0; }
+    @Override public int getHelpImageNotification() { return 0; }
+    @Override public int getHelpImagePowerSaving() { return 0; }
 }

@@ -4,8 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-import com.cbo.sfa_utils.R;
-
 import java.util.Arrays;
 
 import disable_battery_optimizations.models.BatteryGuide;
@@ -28,10 +26,8 @@ public class Huawei extends DeviceAbstract {
 
     @Override
     public boolean isThatRom() {
-        return Build.BRAND.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.MANUFACTURER.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.FINGERPRINT.toLowerCase().contains("huawei") ||
-                Build.FINGERPRINT.toLowerCase().contains("honor");
+        return Build.BRAND.equalsIgnoreCase("huawei") || Build.MANUFACTURER.equalsIgnoreCase("huawei") ||
+                Build.BRAND.equalsIgnoreCase("honor") || Build.MANUFACTURER.equalsIgnoreCase("honor");
     }
 
     @Override
@@ -70,27 +66,17 @@ public class Huawei extends DeviceAbstract {
     }
 
     @Override
-    public Intent getActionNotification(Context context) {
-        Intent intent = ActionsUtils.createIntent().setAction(HUAWEI_ACTION_NOTIFICATION);
-        if (ActionsUtils.isIntentAvailable(context, intent)) {
-            return intent;
-        }
-        return null;
-    }
-
-    @Override
     public BatteryGuide getPowerSavingGuide(Context context) {
         return new BatteryGuide(
-                "Huawei Battery Settings",
-                "Ensure the app is 'Protected' or set to 'Manage manually'.",
+                "Huawei Background Settings",
+                "Ensure Savera RM remains active for offline visit tracking.",
                 Arrays.asList(
-                        "Go to Battery -> App launch",
-                        "Find our app and disable 'Manage automatically'",
-                        "Ensure 'Auto-launch', 'Secondary launch', and 'Run in background' are enabled"
+                        "1. Go to Battery -> App launch",
+                        "2. Find 'Savera RM' and disable 'Manage automatically'",
+                        "3. Enable 'Auto-launch', 'Secondary launch', and 'Run in background'"
                 ),
-                R.drawable.huawei_powersaving,
-                null,
-                null
+                0, null,
+                "Note: On EMUI 12+, also ensure 'Performance mode' is enabled if needed."
         );
     }
 
@@ -100,27 +86,28 @@ public class Huawei extends DeviceAbstract {
                 "Huawei Auto Start",
                 "Allow the app to start automatically.",
                 Arrays.asList(
-                        "Go to Phone Manager -> Cleanup",
-                        "Select 'Settings' and ensure 'Auto-cleanup' is not killing the app"
+                        "1. Open Phone Manager -> App launch",
+                        "2. Toggle 'Savera RM' to 'Manage manually'",
+                        "3. Ensure all three toggles are enabled"
                 ),
-                R.drawable.huawei_autostart,
-                null,
-                null
+                0, null, null
         );
     }
 
     @Override
+    public Intent getActionNotification(Context context) {
+        Intent intent = ActionsUtils.createIntent().setAction(HUAWEI_ACTION_NOTIFICATION);
+        if (ActionsUtils.isIntentAvailable(context, intent)) {
+            return intent;
+        }
+        return null;
+    }
+
+    @Override
     public String getExtraDebugInformations(Context context) {
-        return "Huawei/Honor Model: " + Build.MODEL;
+        return "Huawei Model: " + Build.MODEL;
     }
 
-    @Override
-    public int getHelpImagePowerSaving() {
-        return R.drawable.huawei_powersaving;
-    }
-
-    @Override
-    public int getHelpImageAutoStart() {
-        return R.drawable.huawei_autostart;
-    }
+    @Override public int getHelpImagePowerSaving() { return 0; }
+    @Override public int getHelpImageAutoStart() { return 0; }
 }

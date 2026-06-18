@@ -27,9 +27,7 @@ public class OnePlus extends DeviceAbstract {
 
     @Override
     public boolean isThatRom() {
-        return Build.BRAND.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.MANUFACTURER.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.FINGERPRINT.toLowerCase().contains(getDeviceManufacturer().toString());
+        return Build.BRAND.equalsIgnoreCase("oneplus") || Build.MANUFACTURER.equalsIgnoreCase("oneplus");
     }
 
     @Override
@@ -68,11 +66,14 @@ public class OnePlus extends DeviceAbstract {
     public BatteryGuide getPowerSavingGuide(Context context) {
         return new BatteryGuide(
                 "OnePlus Battery Optimization",
-                "Ensure the app is set to 'Don't optimize'.",
-                Collections.singletonList("Go to Battery -> Battery optimization, find the app and select 'Don't optimize'"),
-                0,
-                null,
-                null
+                "Set to 'Don't optimize' to allow continuous background tasks.",
+                Arrays.asList(
+                        "1. Open App Info for 'Savera RM'",
+                        "2. Tap on 'Battery' or 'Battery optimization'",
+                        "3. Select 'Don't optimize' or 'Unrestricted'"
+                ),
+                0, null,
+                "OxygenOS may kill apps if 'Advanced Optimization' is enabled in system settings."
         );
     }
 
@@ -81,10 +82,12 @@ public class OnePlus extends DeviceAbstract {
         return new BatteryGuide(
                 "OnePlus Auto Launch",
                 "Allow the app to launch automatically.",
-                Collections.singletonList("Go to Settings -> Apps -> App management -> [App Name] -> Battery -> Allow auto-launch"),
-                0,
-                null,
-                null
+                Arrays.asList(
+                        "1. Go to Settings -> Apps -> App management",
+                        "2. Select 'Savera RM' -> Battery",
+                        "3. Enable 'Allow auto-launch'"
+                ),
+                0, null, null
         );
     }
 
@@ -97,4 +100,7 @@ public class OnePlus extends DeviceAbstract {
     public String getExtraDebugInformations(Context context) {
         return "OnePlus Model: " + Build.MODEL + " OxygenOS: " + Build.VERSION.RELEASE;
     }
+
+    @Override public int getHelpImagePowerSaving() { return 0; }
+    @Override public int getHelpImageAutoStart() { return 0; }
 }

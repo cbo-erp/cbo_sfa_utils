@@ -15,10 +15,8 @@ public class Oppo extends DeviceAbstract {
 
     @Override
     public boolean isThatRom() {
-        return Build.BRAND.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.MANUFACTURER.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.FINGERPRINT.toLowerCase().contains("oppo") ||
-                Build.FINGERPRINT.toLowerCase().contains("realme");
+        String manufacturer = Build.MANUFACTURER.toLowerCase();
+        return manufacturer.contains("oppo") || manufacturer.contains("realme");
     }
 
     @Override
@@ -63,32 +61,29 @@ public class Oppo extends DeviceAbstract {
     @Override
     public BatteryGuide getPowerSavingGuide(Context context) {
         return new BatteryGuide(
-                "Oppo/Realme Battery Settings",
-                "Allow the app to run in the background without restrictions.",
+                "Oppo/Realme Background Settings",
+                "Ensure Savera RM can run in the background without interruptions.",
                 Arrays.asList(
-                        "Go to Battery -> More battery settings",
-                        "Select 'Optimize battery use'",
-                        "Find our app and select 'Don't optimize'"
+                        "1. Open App Info for 'Savera RM'",
+                        "2. Tap on 'Battery usage'",
+                        "3. Enable 'Allow background activity'"
                 ),
-                0,
-                null,
-                "ColorOS/Realme UI may have additional 'App management' settings."
+                0, null,
+                "Note: On some versions, you may also need to disable 'Optimize battery use' in Battery settings."
         );
     }
 
     @Override
     public BatteryGuide getAutoStartGuide(Context context) {
         return new BatteryGuide(
-                "Oppo/Realme Auto Start",
-                "Enable the app to start automatically.",
+                "Oppo/Realme Auto Launch",
+                "Allow the app to start automatically.",
                 Arrays.asList(
-                        "Go to Settings -> App management",
-                        "Select 'Auto-launch apps'",
-                        "Enable the toggle for our app"
+                        "1. Go to Settings -> App management",
+                        "2. Tap on 'Auto-launch apps'",
+                        "3. Toggle 'Savera RM' to ON"
                 ),
-                0,
-                null,
-                null
+                0, null, null
         );
     }
 
