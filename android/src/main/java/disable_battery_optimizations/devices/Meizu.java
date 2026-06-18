@@ -83,6 +83,8 @@ public class Meizu extends DeviceAbstract {
 
     @Override
     public BatteryGuide getPowerSavingGuide(Context context) {
+        String appName = getAppName(context);
+
         return new BatteryGuide(
                 "Meizu Battery Management",
                 "Allow the app to run in the background without being killed.",
@@ -90,9 +92,11 @@ public class Meizu extends DeviceAbstract {
                         "1. Open 'Security' app",
                         "2. Tap on 'Battery'",
                         "3. Select 'App Power Management'",
-                        "4. Find 'Savera RM' and allow background running"
+                        "4. Find '" + appName + "' and allow background running"
                 ),
-                0, null, null
+                0,
+                null,
+                null
         );
     }
 

@@ -20,10 +20,19 @@ import disable_battery_optimizations.models.BatteryGuide;
 import disable_battery_optimizations.utils.KillerManagerUtils;
 import disable_battery_optimizations.utils.LogUtils;
 
+/**
+ * Builds battery optimization dialogs with text-based guides.
+ * 
+ * Two usage modes:
+ * 1. Standalone mode (default): Dialog launches the settings intent when "Open Settings" is tapped
+ * 2. Callback mode (skipInternalLaunch=true): Dialog only calls callback, caller handles intent launch
+ *    → Use this when integrating with ActivityResultLauncher in BatteryOptimizationHelper
+ */
 public class DialogKillerManagerBuilder {
     private Context mContext;
     private KillerManager.Actions mAction;
     private boolean enableDontShowAgain = false;
+    private boolean skipInternalLaunch = false;
     private String titleMessage;
     private String positiveBtnStr;
     private String negativeBtnStr;
@@ -48,6 +57,20 @@ public class DialogKillerManagerBuilder {
 
     public DialogKillerManagerBuilder setDontShowAgain(boolean enable) {
         this.enableDontShowAgain = enable;
+        return this;
+    }
+
+    /**
+     * Set to true when using with ActivityResultLauncher.
+     * Dialog will NOT launch the intent, only call the callback.
+     * Caller is responsible for launching the intent.
+     * 
+     * @param skip If true, dialog won't launch intent internally
+     * @return this builder for chaining
+     */
+    public DialogKillerManagerBuilder setSkipInternalLaunch(boolean skip) {
+        this.skipInternalLaunch = skip;
+        LogUtils.d("DialogKillerManagerBuilder", "skipInternalLaunch set to: " + skip);
         return this;
     }
 
@@ -78,6 +101,7 @@ public class DialogKillerManagerBuilder {
 
     public void show() {
         if (mContext == null || mAction == null) {
+            LogUtils.e("DialogKillerManagerBuilder", "Context or Action is null, cannot show dialog");
             return;
         }
 
@@ -85,12 +109,16 @@ public class DialogKillerManagerBuilder {
         DeviceBase device = KillerManager.getDevice();
 
         if (!KillerManager.isActionAvailable(mContext, mAction) || device == null) {
+            LogUtils.d("DialogKillerManagerBuilder", "Action not available for: " + mAction + ", skipping dialog");
             if (onPositive != null) onPositive.onClick(null);
             return;
         }
 
         if (enableDontShowAgain && KillerManagerUtils.isDontShowAgain(mContext, mAction)) {
-            KillerManager.doAction(mContext, mAction);
+            LogUtils.d("DialogKillerManagerBuilder", "Don't show again is set, launching action directly");
+            if (!skipInternalLaunch) {
+                KillerManager.doAction(mContext, mAction);
+            }
             if (onPositive != null) onPositive.onClick(null);
             return;
         }
@@ -105,11 +133,21 @@ public class DialogKillerManagerBuilder {
         initView(customView, device);
 
         builder.setPositiveButton(positiveBtnStr, (dialog, which) -> {
-            KillerManager.doAction(mContext, mAction);
+            LogUtils.d("DialogKillerManagerBuilder", "Positive button clicked, skipInternalLaunch=" + skipInternalLaunch);
+            
+            // Only launch intent if NOT using ActivityResultLauncher mode
+            if (!skipInternalLaunch) {
+                LogUtils.d("DialogKillerManagerBuilder", "🚀 Launching action: " + mAction);
+                KillerManager.doAction(mContext, mAction);
+            } else {
+                LogUtils.d("DialogKillerManagerBuilder", "Skipping internal launch, caller will handle intent");
+            }
+            
             if (onPositive != null) onPositive.onClick(customView);
         });
 
         builder.setNegativeButton(negativeBtnStr, (dialog, which) -> {
+            LogUtils.d("DialogKillerManagerBuilder", "Negative button clicked");
             if (onNegative != null) onNegative.onClick(customView);
         });
 
@@ -146,8 +184,10 @@ public class DialogKillerManagerBuilder {
 
         if (enableDontShowAgain) {
             dontShowAgainCb.setVisibility(View.VISIBLE);
-            dontShowAgainCb.setOnCheckedChangeListener((buttonView, isChecked) -> 
-                    KillerManagerUtils.setDontShowAgain(mContext, mAction, isChecked));
+            dontShowAgainCb.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                LogUtils.d("DialogKillerManagerBuilder", "Don't show again: " + isChecked);
+                KillerManagerUtils.setDontShowAgain(mContext, mAction, isChecked);
+            });
         } else {
             dontShowAgainCb.setVisibility(View.GONE);
         }

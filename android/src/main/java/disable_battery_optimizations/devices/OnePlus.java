@@ -64,30 +64,37 @@ public class OnePlus extends DeviceAbstract {
 
     @Override
     public BatteryGuide getPowerSavingGuide(Context context) {
+        String appName = getAppName(context);
+
         return new BatteryGuide(
                 "OnePlus Battery Optimization",
                 "Set to 'Don't optimize' to allow continuous background tasks.",
                 Arrays.asList(
-                        "1. Open App Info for 'Savera RM'",
+                        "1. Open App Info for '" + appName + "'",
                         "2. Tap on 'Battery' or 'Battery optimization'",
                         "3. Select 'Don't optimize' or 'Unrestricted'"
                 ),
-                0, null,
+                0,
+                null,
                 "OxygenOS may kill apps if 'Advanced Optimization' is enabled in system settings."
         );
     }
 
     @Override
     public BatteryGuide getAutoStartGuide(Context context) {
+        String appName = getAppName(context);
+
         return new BatteryGuide(
                 "OnePlus Auto Launch",
                 "Allow the app to launch automatically.",
                 Arrays.asList(
                         "1. Go to Settings -> Apps -> App management",
-                        "2. Select 'Savera RM' -> Battery",
+                        "2. Select '" + appName + "' -> Battery",
                         "3. Enable 'Allow auto-launch'"
                 ),
-                0, null, null
+                0,
+                null,
+                null
         );
     }
 

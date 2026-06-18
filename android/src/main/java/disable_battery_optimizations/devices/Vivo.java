@@ -78,29 +78,32 @@ public class Vivo extends DeviceAbstract {
 
     @Override
     public BatteryGuide getPowerSavingGuide(Context context) {
+        String appName = getAppName(context);
+
         return new BatteryGuide(
                 "Vivo Battery Management",
-                "Enable high background power usage and disable restrictions.",
+                "Enable high background power usage and disable restrictions for " + appName + ".",
                 Arrays.asList(
-                        "Go to Battery settings",
-                        "Select 'Background Power Consumption Management'",
-                        "Find our app and select 'High Background Power Consumption'"
+                        "1. Go to Battery settings",
+                        "2. Select 'Background Power Consumption Management'",
+                        "3. Find '" + appName + "' and select 'High Background Power Consumption'"
                 ),
                 0,
                 null,
                 "Settings might vary across Funtouch OS versions."
         );
     }
-
     @Override
     public BatteryGuide getAutoStartGuide(Context context) {
+        String appName = getAppName(context);
+
         return new BatteryGuide(
                 "Vivo Auto Start",
                 "Allow the app to start automatically.",
                 Arrays.asList(
-                        "Go to Settings -> More Settings -> Applications",
-                        "Select 'Autostart'",
-                        "Toggle the switch for our app"
+                        "1. Go to Settings -> More Settings -> Applications",
+                        "2. Select 'Autostart'",
+                        "3. Toggle the switch for '" + appName + "'"
                 ),
                 0,
                 null,

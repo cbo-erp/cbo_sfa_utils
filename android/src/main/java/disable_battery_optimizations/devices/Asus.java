@@ -76,15 +76,19 @@ public class Asus extends DeviceAbstract {
 
     @Override
     public BatteryGuide getAutoStartGuide(Context context) {
+        String appName = getAppName(context);
+
         return new BatteryGuide(
                 "Asus Auto-start Manager",
                 "Allow the app to start automatically.",
                 Arrays.asList(
                         "1. Open 'Mobile Manager'",
                         "2. Tap on 'Auto-start Manager'",
-                        "3. Find 'Savera RM' and toggle it to 'Allow'"
+                        "3. Find '" + appName + "' and toggle it to 'Allow'"
                 ),
-                0, null, null
+                0,
+                null,
+                null
         );
     }
 

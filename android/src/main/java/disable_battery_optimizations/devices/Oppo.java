@@ -78,30 +78,37 @@ public class Oppo extends DeviceAbstract {
 
     @Override
     public BatteryGuide getPowerSavingGuide(Context context) {
+        String appName = getAppName(context);
+
         return new BatteryGuide(
                 "Oppo/Realme Background Settings",
-                "Ensure Savera RM can run in the background without interruptions.",
+                "Ensure " + appName + " can run in the background without interruptions.",
                 Arrays.asList(
-                        "1. Open App Info for 'Savera RM'",
+                        "1. Open App Info for '" + appName + "'",
                         "2. Tap on 'Battery usage'",
                         "3. Enable 'Allow background activity'"
                 ),
-                0, null,
+                0,
+                null,
                 "Note: On some versions, you may also need to disable 'Optimize battery use' in Battery settings."
         );
     }
 
     @Override
     public BatteryGuide getAutoStartGuide(Context context) {
+        String appName = getAppName(context);
+
         return new BatteryGuide(
                 "Oppo/Realme Auto Launch",
                 "Allow the app to start automatically.",
                 Arrays.asList(
                         "1. Go to Settings -> App management",
                         "2. Tap on 'Auto-launch apps'",
-                        "3. Toggle 'Savera RM' to ON"
+                        "3. Toggle '" + appName + "' to ON"
                 ),
-                0, null, null
+                0,
+                null,
+                null
         );
     }
 

@@ -67,30 +67,36 @@ public class Huawei extends DeviceAbstract {
 
     @Override
     public BatteryGuide getPowerSavingGuide(Context context) {
+        String appName = getAppName(context);
         return new BatteryGuide(
                 "Huawei Background Settings",
-                "Ensure Savera RM remains active for offline visit tracking.",
+                "Ensure " + appName + " remains active for offline visit tracking.",
                 Arrays.asList(
                         "1. Go to Battery -> App launch",
-                        "2. Find 'Savera RM' and disable 'Manage automatically'",
+                        "2. Find '" + appName + "' and disable 'Manage automatically'",
                         "3. Enable 'Auto-launch', 'Secondary launch', and 'Run in background'"
                 ),
-                0, null,
+                0,
+                null,
                 "Note: On EMUI 12+, also ensure 'Performance mode' is enabled if needed."
         );
     }
 
     @Override
     public BatteryGuide getAutoStartGuide(Context context) {
+        String appName = getAppName(context);
+
         return new BatteryGuide(
                 "Huawei Auto Start",
                 "Allow the app to start automatically.",
                 Arrays.asList(
                         "1. Open Phone Manager -> App launch",
-                        "2. Toggle 'Savera RM' to 'Manage manually'",
+                        "2. Toggle '" + appName + "' to 'Manage manually'",
                         "3. Ensure all three toggles are enabled"
                 ),
-                0, null, null
+                0,
+                null,
+                null
         );
     }
 

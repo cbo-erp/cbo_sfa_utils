@@ -58,6 +58,18 @@ public class BatteryOptimizationUtil {
         return intent.resolveActivity(context.getPackageManager()) == null ? getAppSettingsIntent(context) : intent;
     }
 
+    /**
+     * Shows battery optimization dialog with actionable guide text.
+     * 
+     * @param context Current activity
+     * @param action The optimization action (AUTOSTART, POWERSAVING, etc.)
+     * @param titleMessage Custom title for the dialog
+     * @param callback Callback when user accepts or cancels
+     * 
+     * NOTE: This method is typically called by BatteryOptimizationHelper which handles
+     * the actual intent launching via ActivityResultLauncher. The skipInternalLaunch flag
+     * is set to true to prevent double-launching.
+     */
     public static void showBatteryOptimizationDialog(final ComponentActivity context, final KillerManager.Actions action, String titleMessage,  final OnOptimizationActionCallback callback) {
 
         if (KillerManager.isActionAvailable(context, action)) {
@@ -70,15 +82,18 @@ public class BatteryOptimizationUtil {
                 new DialogKillerManagerBuilder()
                         .setContext(context)
                         .setDontShowAgain(false)
+                        .setSkipInternalLaunch(true)  // ← Critical: Let BatteryOptimizationHelper handle intent launch
                         .setTitleMessage(finalTitleMessage)
-//                        .setPositiveMessage("Ok")
                         .setOnPositiveCallback(view -> {
+                            LogUtils.d("BatteryOptimizationUtil", "Dialog positive callback triggered");
                             callback.onAccepted();
                         }).setOnNegativeCallback((view) -> {
+                            LogUtils.d("BatteryOptimizationUtil", "Dialog negative callback triggered");
                             callback.onCanceled();
                         }).setAction(action).show();
             });
         } else {
+            LogUtils.d("BatteryOptimizationUtil", "Action not available on this device: " + action);
             callback.onAccepted();
         }
     }

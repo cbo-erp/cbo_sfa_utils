@@ -65,7 +65,7 @@ public class Xiaomi extends DeviceAbstract {
         if (intent == null) {
             intent = ActionsUtils.createIntent().setAction(ACTION_POWER_HIDE_LIST);
             intent.putExtra("package_name", context.getPackageName());
-            intent.putExtra("package_label", context.getApplicationInfo().loadLabel(context.getPackageManager()).toString());
+            intent.putExtra("package_label", getAppName(context));
             if (!ActionsUtils.isIntentAvailable(context, intent)) {
                 intent = null;
             }
@@ -85,26 +85,35 @@ public class Xiaomi extends DeviceAbstract {
 
     @Override
     public BatteryGuide getPowerSavingGuide(Context context) {
+        String appName = getAppName(context);
+
         return new BatteryGuide(
                 "Xiaomi Battery Settings",
                 "Ensure reliable background tracking on HyperOS/MIUI.",
                 Arrays.asList(
-                        "1. Open App Info for 'Savera RM'",
+                        "1. Open App Info for '" + appName + "'",
                         "2. Tap on 'Battery saver'",
                         "3. Select 'No restrictions'"
                 ),
-                0, null,
+                0,
+                null,
                 "Note: Standard Android optimization settings are often overridden by Xiaomi's PowerKeeper."
         );
     }
 
     @Override
     public BatteryGuide getAutoStartGuide(Context context) {
+        String appName = getAppName(context);
+
         return new BatteryGuide(
                 "Xiaomi Auto Start",
                 "Allow the app to start automatically.",
-                Collections.singletonList("1. Toggle 'Autostart' to ON in the App Info screen"),
-                0, null, null
+                Collections.singletonList(
+                        "1. Toggle 'Autostart' for '" + appName + "' to ON in the App Info screen"
+                ),
+                0,
+                null,
+                null
         );
     }
 
