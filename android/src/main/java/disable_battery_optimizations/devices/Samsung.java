@@ -15,7 +15,8 @@ public class Samsung extends DeviceAbstract {
 
     @Override
     public boolean isThatRom() {
-        return Build.BRAND.equalsIgnoreCase("samsung") || Build.MANUFACTURER.equalsIgnoreCase("samsung");
+        return Build.BRAND.equalsIgnoreCase("samsung")
+                || Build.MANUFACTURER.equalsIgnoreCase("samsung");
     }
 
     @Override
@@ -32,28 +33,29 @@ public class Samsung extends DeviceAbstract {
                     "Samsung Background Settings",
                     "Allow unrestricted background usage for accurate tracking.",
                     Arrays.asList(
-                            "1. Open App Info for '" + appName + "'",
-                            "2. Tap on 'Battery'",
-                            "3. Select 'Unrestricted'"
+                            "1. Open App Info for " + appName,
+                            "2. Tap Battery",
+                            "3. Select Unrestricted"
                     ),
                     0,
                     null,
                     null
             );
-        } else {
-            return new BatteryGuide(
-                    "Samsung Power Management",
-                    "Whitelist the app to prevent it from being paused in the background.",
-                    Arrays.asList(
-                            "1. Open Settings > Device Maintenance > Battery",
-                            "2. Scroll down to 'Unmonitored apps' or 'App power monitor'",
-                            "3. Add '" + appName + "' to the list of excluded/unmonitored apps"
-                    ),
-                    0,
-                    null,
-                    "Note: If 'App power monitor' is ON, ensure this app is NOT 'Put to sleep'."
-            );
         }
+
+        return new BatteryGuide(
+                "Samsung App Battery Settings",
+                "Allow unrestricted background usage for this app.",
+                Arrays.asList(
+                        "1. You're now viewing the App Info page",
+                        "2. Scroll down and tap Battery",
+                        "3. Select Unrestricted (or Unlimited if available)",
+                        "4. Confirm and return to the app"
+                ),
+                0,
+                null,
+                "If Battery option is not visible, your device may not support this setting. Return to continue."
+        );
     }
 
     @Override
@@ -67,19 +69,29 @@ public class Samsung extends DeviceAbstract {
 
     @Override
     public Intent getActionPowerSaving(Context context) {
-        return ActionsUtils.firstAvailableIntent(context, Arrays.asList(
-                ActionsUtils.createIntent().setAction("com.samsung.android.sm.ACTION_BATTERY"),
-                ActionsUtils.createIntent().setAction("com.samsung.android.sm.ACTION_DEVICE_MAINTENANCE"),
-                ActionsUtils.openApplicationInfo(context)
-        ));
+        if (Build.VERSION.SDK_INT >= 31) {
+            return ActionsUtils.firstAvailableIntent(context, Arrays.asList(
+                    ActionsUtils.createIntent().setAction("com.samsung.android.sm.ACTION_BATTERY"),
+                    ActionsUtils.createIntent().setAction("com.samsung.android.sm.ACTION_DEVICE_MAINTENANCE"),
+                    ActionsUtils.openApplicationInfo(context)
+            ));
+        }
+
+        return ActionsUtils.openApplicationInfo(context);
     }
 
     @Override
-    public Intent getActionAutoStart(Context context) { return null; }
+    public Intent getActionAutoStart(Context context) {
+        return null;
+    }
+
     @Override
-    public Intent getActionNotification(Context context) { return null; }
+    public Intent getActionNotification(Context context) {
+        return null;
+    }
+
     @Override
-    public String getExtraDebugInformations(Context context) { 
-        return "Samsung Model: " + Build.MODEL + " SDK: " + Build.VERSION.SDK_INT; 
+    public String getExtraDebugInformations(Context context) {
+        return "Samsung Model: " + Build.MODEL + " SDK: " + Build.VERSION.SDK_INT;
     }
 }
