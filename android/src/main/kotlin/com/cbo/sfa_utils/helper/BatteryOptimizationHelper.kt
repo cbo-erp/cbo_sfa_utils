@@ -376,6 +376,11 @@ object BatteryOptimizationHelper {
             PrefUtils.saveToPrefs(activity, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, true)
             callback?.onAccepted()
             return
+        } else if (bgStatus == OptimizationVerificationStatus.UNKNOWN) {
+            LogUtils.i("BatteryOptHelper", "✅ Background restriction: User visited settings (status unverifiable on this device, accepting)")
+            PrefUtils.saveToPrefs(activity, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, true)
+            callback?.onAccepted()
+            return
         }
 
         // Verification failed - user likely cancelled without changing anything

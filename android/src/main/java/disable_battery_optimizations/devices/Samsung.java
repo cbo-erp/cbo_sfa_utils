@@ -69,15 +69,11 @@ public class Samsung extends DeviceAbstract {
 
     @Override
     public Intent getActionPowerSaving(Context context) {
-        if (Build.VERSION.SDK_INT >= 31) {
-            return ActionsUtils.firstAvailableIntent(context, Arrays.asList(
-                    ActionsUtils.createIntent().setAction("com.samsung.android.sm.ACTION_BATTERY"),
-                    ActionsUtils.createIntent().setAction("com.samsung.android.sm.ACTION_DEVICE_MAINTENANCE"),
-                    ActionsUtils.openApplicationInfo(context)
-            ));
-        }
-
-        return ActionsUtils.openApplicationInfo(context);
+        return ActionsUtils.firstAvailableIntent(context, Arrays.asList(
+                ActionsUtils.createIntent().setAction("com.samsung.android.sm.ACTION_BATTERY"),
+                ActionsUtils.createIntent().setAction("com.samsung.android.sm.ACTION_DEVICE_MAINTENANCE"),
+                ActionsUtils.openApplicationInfo(context)
+        ));
     }
 
     @Override
