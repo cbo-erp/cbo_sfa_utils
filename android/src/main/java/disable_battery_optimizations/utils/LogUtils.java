@@ -8,8 +8,19 @@ public class LogUtils {
         Log.i(tag,message);
         //HyperLog.i(tag,message);
     }
+    
     public static void e(String tag, String message){
         Log.e(tag,message);
+        //HyperLog.e(tag,message);
+    }
+    
+    public static void d(String tag, String message){
+        Log.d(tag,message);
+        //HyperLog.e(tag,message);
+    }
+
+    public static void w(String tag, String message){
+        Log.w(tag,message);
         //HyperLog.e(tag,message);
     }
 }
