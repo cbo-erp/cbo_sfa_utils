@@ -85,15 +85,14 @@ public class Samsung extends DeviceAbstract {
                     int level = (int) getLevelMethod.invoke(am);
 
                     final int RESTRICTION_LEVEL_RESTRICTED = 50;
-                    final int RESTRICTION_LEVEL_ADAPTIVE = 20;
 
-                    // Samsung: If clearly restricted (level >= 50), return FAILED
+                    // Samsung: If fully restricted (level >= 50), return FAILED
                     if (level >= RESTRICTION_LEVEL_RESTRICTED) {
                         LogUtils.d("Samsung", "❌ Background restriction check: FAILED (level=" + level + ")");
                         return OptimizationVerificationStatus.FAILED;
                     }
-                    // Samsung: If unrestricted or adaptive (level <= 40), assume VERIFIED
-                    else if (level <= 40) {
+                    // Samsung: Anything less than fully restricted is treated as VERIFIED
+                    else {
                         LogUtils.d("Samsung", "✅ Background restriction check: VERIFIED (level=" + level + ")");
                         return OptimizationVerificationStatus.VERIFIED;
                     }

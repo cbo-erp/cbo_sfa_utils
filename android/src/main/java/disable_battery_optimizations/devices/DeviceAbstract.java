@@ -85,16 +85,13 @@ public abstract class DeviceAbstract implements DeviceBase {
                     Method getLevelMethod = ActivityManager.class.getMethod("getBackgroundRestrictionLevel");
                     int level = (int) getLevelMethod.invoke(am);
 
-                    // RESTRICTION_LEVEL_RESTRICTED (50) = clearly restricted
-                    // RESTRICTION_LEVEL_ADAPTIVE (20) to 40 = unrestricted or adaptive (treat as OK)
                     final int RESTRICTION_LEVEL_RESTRICTED = 50;
 
                     if (level >= RESTRICTION_LEVEL_RESTRICTED) {
                         LogUtils.d(this.getClass().getSimpleName(), "❌ Background restriction check: FAILED (level=" + level + ")");
                         return OptimizationVerificationStatus.FAILED;
-                    } else if (level <= 40) {
-                        // Be lenient: treat anything <= 40 as unrestricted (VERIFIED)
-                        // Covers ADAPTIVE (20) and other moderate restrictions
+                    } else {
+                        // Anything less than fully restricted (50) is treated as VERIFIED
                         LogUtils.d(this.getClass().getSimpleName(), "✅ Background restriction check: VERIFIED (level=" + level + ")");
                         return OptimizationVerificationStatus.VERIFIED;
                     }

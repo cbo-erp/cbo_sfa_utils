@@ -64,12 +64,11 @@ public class Huawei extends DeviceAbstract {
                     int level = (int) getLevelMethod.invoke(am);
 
                     final int RESTRICTION_LEVEL_RESTRICTED = 50;
-                    final int RESTRICTION_LEVEL_ADAPTIVE = 20;
 
                     if (level >= RESTRICTION_LEVEL_RESTRICTED) {
                         LogUtils.d("Huawei", "❌ Background restriction check: FAILED (level=" + level + ")");
                         return OptimizationVerificationStatus.FAILED;
-                    } else if (level <= RESTRICTION_LEVEL_ADAPTIVE) {
+                    } else {
                         LogUtils.d("Huawei", "✅ Background restriction check: VERIFIED (level=" + level + ")");
                         return OptimizationVerificationStatus.VERIFIED;
                     }
