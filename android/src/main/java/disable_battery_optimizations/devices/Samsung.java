@@ -111,7 +111,7 @@ public class Samsung extends DeviceAbstract {
         }
 
         // Reflection failed - can't verify, and user hasn't confirmed via preference
-        LogUtils.d("Samsung", "❓ Background restriction check: UNKNOWN (reflection failed, requires user confirmation)");
+        LogUtils.d("Samsung", "❓ Background restriction check: UNKNOWN (requires user confirmation)");
         return OptimizationVerificationStatus.UNKNOWN;
     }
 
