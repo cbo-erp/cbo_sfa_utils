@@ -1,15 +1,21 @@
 package disable_battery_optimizations.devices;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 
 import disable_battery_optimizations.models.BatteryGuide;
 import disable_battery_optimizations.models.DeviceCapabilities;
+import disable_battery_optimizations.models.OptimizationVerificationStatus;
 import disable_battery_optimizations.utils.ActionsUtils;
+import disable_battery_optimizations.utils.LogUtils;
 import disable_battery_optimizations.utils.Manufacturer;
+import disable_battery_optimizations.utils.PrefKeys;
+import disable_battery_optimizations.utils.PrefUtils;
 
 public class Samsung extends DeviceAbstract {
 
@@ -65,6 +71,54 @@ public class Samsung extends DeviceAbstract {
                 .setCanVerifyDoze(true)
                 .setSupportsBackgroundRestriction(true)
                 .build();
+    }
+
+    @Override
+    public OptimizationVerificationStatus checkBackgroundRestrictionStatus(Context context) {
+        // Samsung Android 12+ has unreliable reflection API for background restriction
+        // Use more lenient logic: if user confirmed it once, trust that
+        if (Build.VERSION.SDK_INT >= 31) {
+            try {
+                ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+                if (am != null) {
+                    Method getLevelMethod = ActivityManager.class.getMethod("getBackgroundRestrictionLevel");
+                    int level = (int) getLevelMethod.invoke(am);
+
+                    final int RESTRICTION_LEVEL_RESTRICTED = 50;
+                    final int RESTRICTION_LEVEL_ADAPTIVE = 20;
+
+                    // Samsung: If clearly restricted (level >= 50), return FAILED
+                    if (level >= RESTRICTION_LEVEL_RESTRICTED) {
+                        LogUtils.d("Samsung", "❌ Background restriction check: FAILED (level=" + level + ")");
+                        return OptimizationVerificationStatus.FAILED;
+                    }
+                    // Samsung: If unrestricted or adaptive (level <= 40), assume VERIFIED
+                    else if (level <= 40) {
+                        LogUtils.d("Samsung", "✅ Background restriction check: VERIFIED (level=" + level + ")");
+                        return OptimizationVerificationStatus.VERIFIED;
+                    }
+                }
+            } catch (Exception e) {
+                LogUtils.e("Samsung", "Reflection failed for getBackgroundRestrictionLevel: " + e.getMessage());
+            }
+        }
+
+        // Fallback: Check user preference (user confirmed via settings)
+        if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED)) {
+            if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
+                LogUtils.d("Samsung", "✅ Background restriction check: USER_CONFIRMED (from prefs)");
+                return OptimizationVerificationStatus.USER_CONFIRMED;
+            }
+        }
+
+        // Samsung power saving available but not confirmed yet
+        if (getActionPowerSaving(context) != null) {
+            LogUtils.d("Samsung", "❓ Background restriction check: UNKNOWN (requires user confirmation)");
+            return OptimizationVerificationStatus.UNKNOWN;
+        }
+
+        LogUtils.d("Samsung", "ℹ️ Background restriction check: NOT_SUPPORTED");
+        return OptimizationVerificationStatus.NOT_SUPPORTED;
     }
 
     @Override

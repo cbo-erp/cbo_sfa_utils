@@ -1,16 +1,22 @@
 package disable_battery_optimizations.devices;
 
+import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 
 import disable_battery_optimizations.models.BatteryGuide;
 import disable_battery_optimizations.models.DeviceCapabilities;
+import disable_battery_optimizations.models.OptimizationVerificationStatus;
 import disable_battery_optimizations.utils.ActionsUtils;
+import disable_battery_optimizations.utils.LogUtils;
 import disable_battery_optimizations.utils.Manufacturer;
+import disable_battery_optimizations.utils.PrefKeys;
+import disable_battery_optimizations.utils.PrefUtils;
 
 public class Oppo extends DeviceAbstract {
 
@@ -50,6 +56,49 @@ public class Oppo extends DeviceAbstract {
                 .setCanVerifyDoze(false)
                 .setRequiresManualConfirmation(true)
                 .build();
+    }
+
+    @Override
+    public OptimizationVerificationStatus checkBackgroundRestrictionStatus(Context context) {
+        // Oppo/Realme: ColorOS battery optimization cannot be verified reliably
+        // Trust user preference entirely
+
+        // Try reflection for Android 12+ as fallback only
+        if (Build.VERSION.SDK_INT >= 31) {
+            try {
+                ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+                if (am != null) {
+                    Method getLevelMethod = ActivityManager.class.getMethod("getBackgroundRestrictionLevel");
+                    int level = (int) getLevelMethod.invoke(am);
+
+                    final int RESTRICTION_LEVEL_RESTRICTED = 50;
+
+                    if (level >= RESTRICTION_LEVEL_RESTRICTED) {
+                        LogUtils.d("Oppo", "❌ Background restriction check: FAILED (level=" + level + ")");
+                        return OptimizationVerificationStatus.FAILED;
+                    }
+                }
+            } catch (Exception e) {
+                LogUtils.e("Oppo", "Reflection failed for getBackgroundRestrictionLevel: " + e.getMessage());
+            }
+        }
+
+        // Oppo: Always trust user preference (ColorOS is unpredictable)
+        if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED)) {
+            if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
+                LogUtils.d("Oppo", "✅ Background restriction check: USER_CONFIRMED (from prefs)");
+                return OptimizationVerificationStatus.USER_CONFIRMED;
+            }
+        }
+
+        // Oppo power saving available but not confirmed yet
+        if (getActionPowerSaving(context) != null) {
+            LogUtils.d("Oppo", "❓ Background restriction check: UNKNOWN (ColorOS requires user confirmation)");
+            return OptimizationVerificationStatus.UNKNOWN;
+        }
+
+        LogUtils.d("Oppo", "ℹ️ Background restriction check: NOT_SUPPORTED");
+        return OptimizationVerificationStatus.NOT_SUPPORTED;
     }
 
     @Override

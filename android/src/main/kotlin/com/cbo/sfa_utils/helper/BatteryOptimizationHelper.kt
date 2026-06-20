@@ -73,9 +73,7 @@ object BatteryOptimizationHelper {
         val status = manager.currentDevice?.checkAutoStartStatus(context)
                 ?: return true
         // If not supported, assume enabled by default (Android default behavior)
-        return status == OptimizationVerificationStatus.VERIFIED ||
-               status == OptimizationVerificationStatus.USER_CONFIRMED ||
-               status == OptimizationVerificationStatus.NOT_SUPPORTED
+        return status.isAutoStartEnabled()
     }
 
     /**
@@ -85,12 +83,9 @@ object BatteryOptimizationHelper {
      */
     fun isManBatteryOptimizationDisabled(context: Context): Boolean {
         val manager = BatteryOptimizationManager.getInstance(context)
-        val status = manager.currentDevice?.checkBackgroundRestrictionStatus(context)
-                ?: return true
+        val status = manager.checkBackgroundRestrictionStatus()
         // If not supported, assume unrestricted by default
-        return status == OptimizationVerificationStatus.VERIFIED ||
-               status == OptimizationVerificationStatus.USER_CONFIRMED ||
-               status == OptimizationVerificationStatus.NOT_SUPPORTED
+        return status.isBackgroundRestrictionDisabled()
     }
 
     // --- Action APIs (Displaying Interactive Text Guides) ---

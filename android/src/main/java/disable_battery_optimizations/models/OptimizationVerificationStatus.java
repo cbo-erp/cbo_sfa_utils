@@ -5,5 +5,14 @@ public enum OptimizationVerificationStatus {
     USER_CONFIRMED,
     FAILED,
     UNKNOWN,
-    NOT_SUPPORTED
+    NOT_SUPPORTED;
+
+    public boolean isBackgroundRestrictionDisabled() {
+        return this == VERIFIED || this == USER_CONFIRMED || this == NOT_SUPPORTED;
+    }
+
+    public boolean isAutoStartEnabled() {
+        return this == VERIFIED || this == USER_CONFIRMED || this == NOT_SUPPORTED;
+    }
+
 }

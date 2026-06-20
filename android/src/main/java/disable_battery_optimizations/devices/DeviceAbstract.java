@@ -61,15 +61,17 @@ public abstract class DeviceAbstract implements DeviceBase {
             LogUtils.d(this.getClass().getSimpleName(), "ℹ️ Auto-start check: NOT_SUPPORTED");
             return OptimizationVerificationStatus.NOT_SUPPORTED;
         }
-        
+
+        // Check user preference
         if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_AUTO_START_ACCEPTED)) {
             if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_AUTO_START_ACCEPTED, false)) {
                 LogUtils.d(this.getClass().getSimpleName(), "✅ Auto-start check: USER_CONFIRMED (from prefs)");
                 return OptimizationVerificationStatus.USER_CONFIRMED;
             }
         }
-        
-        LogUtils.d(this.getClass().getSimpleName(), "❓ Auto-start check: UNKNOWN");
+
+        // Auto-start is available but not confirmed - user needs to configure
+        LogUtils.d(this.getClass().getSimpleName(), "❓ Auto-start check: UNKNOWN (requires user confirmation)");
         return OptimizationVerificationStatus.UNKNOWN;
     }
 
@@ -82,16 +84,17 @@ public abstract class DeviceAbstract implements DeviceBase {
                 if (am != null) {
                     Method getLevelMethod = ActivityManager.class.getMethod("getBackgroundRestrictionLevel");
                     int level = (int) getLevelMethod.invoke(am);
-                    
-                    // RESTRICTION_LEVEL_RESTRICTED (50) means the app is restricted from running in background
-                    // RESTRICTION_LEVEL_ADAPTIVE (20) or better means it's generally allowed
+
+                    // RESTRICTION_LEVEL_RESTRICTED (50) = clearly restricted
+                    // RESTRICTION_LEVEL_ADAPTIVE (20) to 40 = unrestricted or adaptive (treat as OK)
                     final int RESTRICTION_LEVEL_RESTRICTED = 50;
-                    final int RESTRICTION_LEVEL_ADAPTIVE = 20;
-                    
+
                     if (level >= RESTRICTION_LEVEL_RESTRICTED) {
                         LogUtils.d(this.getClass().getSimpleName(), "❌ Background restriction check: FAILED (level=" + level + ")");
                         return OptimizationVerificationStatus.FAILED;
-                    } else if (level <= RESTRICTION_LEVEL_ADAPTIVE) {
+                    } else if (level <= 40) {
+                        // Be lenient: treat anything <= 40 as unrestricted (VERIFIED)
+                        // Covers ADAPTIVE (20) and other moderate restrictions
                         LogUtils.d(this.getClass().getSimpleName(), "✅ Background restriction check: VERIFIED (level=" + level + ")");
                         return OptimizationVerificationStatus.VERIFIED;
                     }
@@ -106,14 +109,16 @@ public abstract class DeviceAbstract implements DeviceBase {
             return OptimizationVerificationStatus.NOT_SUPPORTED;
         }
 
+        // Check user preference first (most reliable)
         if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED)) {
             if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
                 LogUtils.d(this.getClass().getSimpleName(), "✅ Background restriction check: USER_CONFIRMED (from prefs)");
                 return OptimizationVerificationStatus.USER_CONFIRMED;
             }
         }
-        
-        LogUtils.d(this.getClass().getSimpleName(), "❓ Background restriction check: UNKNOWN");
+
+        // Power saving available but user hasn't confirmed yet - requires user action
+        LogUtils.d(this.getClass().getSimpleName(), "❓ Background restriction check: UNKNOWN (requires user confirmation)");
         return OptimizationVerificationStatus.UNKNOWN;
     }
 
