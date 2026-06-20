@@ -110,14 +110,9 @@ public class Samsung extends DeviceAbstract {
             }
         }
 
-        // Samsung power saving available but not confirmed yet
-        if (getActionPowerSaving(context) != null) {
-            LogUtils.d("Samsung", "❓ Background restriction check: UNKNOWN (requires user confirmation)");
-            return OptimizationVerificationStatus.UNKNOWN;
-        }
-
-        LogUtils.d("Samsung", "ℹ️ Background restriction check: NOT_SUPPORTED");
-        return OptimizationVerificationStatus.NOT_SUPPORTED;
+        // Reflection failed - can't verify, and user hasn't confirmed via preference
+        LogUtils.d("Samsung", "❓ Background restriction check: UNKNOWN (reflection failed, requires user confirmation)");
+        return OptimizationVerificationStatus.UNKNOWN;
     }
 
     @Override

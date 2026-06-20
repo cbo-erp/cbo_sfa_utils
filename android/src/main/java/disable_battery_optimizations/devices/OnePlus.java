@@ -102,13 +102,9 @@ public class OnePlus extends DeviceAbstract {
             }
         }
 
-        if (getActionPowerSaving(context) != null) {
-            LogUtils.d("OnePlus", "❓ Background restriction check: UNKNOWN");
-            return OptimizationVerificationStatus.UNKNOWN;
-        }
-
-        LogUtils.d("OnePlus", "ℹ️ Background restriction check: NOT_SUPPORTED");
-        return OptimizationVerificationStatus.NOT_SUPPORTED;
+        // Can't verify automatically - requires user confirmation
+        LogUtils.d("OnePlus", "❓ Background restriction check: UNKNOWN");
+        return OptimizationVerificationStatus.UNKNOWN;
     }
 
     @Override

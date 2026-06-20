@@ -91,14 +91,9 @@ public class Oppo extends DeviceAbstract {
             }
         }
 
-        // Oppo power saving available but not confirmed yet
-        if (getActionPowerSaving(context) != null) {
-            LogUtils.d("Oppo", "❓ Background restriction check: UNKNOWN (ColorOS requires user confirmation)");
-            return OptimizationVerificationStatus.UNKNOWN;
-        }
-
-        LogUtils.d("Oppo", "ℹ️ Background restriction check: NOT_SUPPORTED");
-        return OptimizationVerificationStatus.NOT_SUPPORTED;
+        // ColorOS requires user confirmation - can't verify automatically
+        LogUtils.d("Oppo", "❓ Background restriction check: UNKNOWN (ColorOS requires user confirmation)");
+        return OptimizationVerificationStatus.UNKNOWN;
     }
 
     @Override

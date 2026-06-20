@@ -93,14 +93,9 @@ public class Vivo extends DeviceAbstract {
             }
         }
 
-        // Vivo power saving available but not confirmed yet
-        if (getActionPowerSaving(context) != null) {
-            LogUtils.d("Vivo", "❓ Background restriction check: UNKNOWN (Funtouch OS requires user confirmation)");
-            return OptimizationVerificationStatus.UNKNOWN;
-        }
-
-        LogUtils.d("Vivo", "ℹ️ Background restriction check: NOT_SUPPORTED");
-        return OptimizationVerificationStatus.NOT_SUPPORTED;
+        // Funtouch OS requires user confirmation - can't verify automatically
+        LogUtils.d("Vivo", "❓ Background restriction check: UNKNOWN (Funtouch OS requires user confirmation)");
+        return OptimizationVerificationStatus.UNKNOWN;
     }
 
     @Override

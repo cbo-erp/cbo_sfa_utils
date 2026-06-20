@@ -93,14 +93,9 @@ public class Xiaomi extends DeviceAbstract {
             }
         }
 
-        // Xiaomi power saving available but not confirmed yet
-        if (getActionPowerSaving(context) != null) {
-            LogUtils.d("Xiaomi", "❓ Background restriction check: UNKNOWN (PowerKeeper requires user confirmation)");
-            return OptimizationVerificationStatus.UNKNOWN;
-        }
-
-        LogUtils.d("Xiaomi", "ℹ️ Background restriction check: NOT_SUPPORTED");
-        return OptimizationVerificationStatus.NOT_SUPPORTED;
+        // PowerKeeper requires user confirmation - can't verify automatically
+        LogUtils.d("Xiaomi", "❓ Background restriction check: UNKNOWN (PowerKeeper requires user confirmation)");
+        return OptimizationVerificationStatus.UNKNOWN;
     }
 
     @Override

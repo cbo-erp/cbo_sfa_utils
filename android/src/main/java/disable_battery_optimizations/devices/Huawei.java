@@ -86,14 +86,9 @@ public class Huawei extends DeviceAbstract {
             }
         }
 
-        // Huawei power saving available but not confirmed yet
-        if (getActionPowerSaving(context) != null) {
-            LogUtils.d("Huawei", "❓ Background restriction check: UNKNOWN (EMUI requires user confirmation)");
-            return OptimizationVerificationStatus.UNKNOWN;
-        }
-
-        LogUtils.d("Huawei", "ℹ️ Background restriction check: NOT_SUPPORTED");
-        return OptimizationVerificationStatus.NOT_SUPPORTED;
+        // EMUI requires user confirmation - can't verify automatically
+        LogUtils.d("Huawei", "❓ Background restriction check: UNKNOWN (EMUI requires user confirmation)");
+        return OptimizationVerificationStatus.UNKNOWN;
     }
 
     @Override
