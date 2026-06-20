@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
 
 import disable_battery_optimizations.models.BatteryGuide;
@@ -53,41 +52,30 @@ public class Huawei extends DeviceAbstract {
 
     @Override
     public OptimizationVerificationStatus checkBackgroundRestrictionStatus(Context context) {
-        // Huawei/Honor EMUI: Background optimization management is complex across versions
-        // Use conservative approach with user preference priority
-
-        if (Build.VERSION.SDK_INT >= 31) {
-            try {
-                ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-                if (am != null) {
-                    Method getLevelMethod = ActivityManager.class.getMethod("getBackgroundRestrictionLevel");
-                    int level = (int) getLevelMethod.invoke(am);
-
-                    final int RESTRICTION_LEVEL_RESTRICTED = 50;
-
-                    if (level >= RESTRICTION_LEVEL_RESTRICTED) {
-                        LogUtils.d("Huawei", "❌ Background restriction check: FAILED (level=" + level + ")");
-                        return OptimizationVerificationStatus.FAILED;
-                    } else {
-                        LogUtils.d("Huawei", "✅ Background restriction check: VERIFIED (level=" + level + ")");
-                        return OptimizationVerificationStatus.VERIFIED;
-                    }
+        // Step 1: Official API gives definitive answer (API 28+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                if (!am.isBackgroundRestricted()) {
+                    LogUtils.d("Huawei", "✅ Background restriction check: UNRESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.UNRESTRICTED;
+                } else {
+                    LogUtils.d("Huawei", "❌ Background restriction check: RESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.RESTRICTED;
                 }
-            } catch (Exception e) {
-                LogUtils.e("Huawei", "Reflection failed for getBackgroundRestrictionLevel: " + e.getMessage());
             }
         }
 
-        // Huawei: Trust user preference (EMUI management is device-version dependent)
+        // Step 2: Fallback to user preference
         if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED)) {
             if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
-                LogUtils.d("Huawei", "✅ Background restriction check: USER_CONFIRMED (from prefs)");
-                return OptimizationVerificationStatus.USER_CONFIRMED;
+                LogUtils.d("Huawei", "✅ Background restriction check: UNRESTRICTED (user confirmed)");
+                return OptimizationVerificationStatus.UNRESTRICTED;
             }
         }
 
-        // EMUI requires user confirmation - can't verify automatically
-        LogUtils.d("Huawei", "❓ Background restriction check: UNKNOWN (EMUI requires user confirmation)");
+        // System API couldn't determine + user hasn't confirmed yet
+        LogUtils.d("Huawei", "❓ Background restriction check: UNKNOWN (requires user confirmation)");
         return OptimizationVerificationStatus.UNKNOWN;
     }
 

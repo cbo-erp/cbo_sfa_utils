@@ -54,8 +54,7 @@ public class BatteryOptimizationManager {
     public boolean isBatteryOptimizationDisabled() {
         if (currentDevice != null) {
             OptimizationVerificationStatus status = currentDevice.checkBatteryOptimizationStatus(context);
-            boolean result = (status == OptimizationVerificationStatus.VERIFIED || 
-                            status == OptimizationVerificationStatus.USER_CONFIRMED);
+            boolean result = (status == OptimizationVerificationStatus.UNRESTRICTED);
             LogUtils.d("BatteryOptimizationManager", "isBatteryOptimizationDisabled: status=" + status + ", result=" + result);
             return result;
         }

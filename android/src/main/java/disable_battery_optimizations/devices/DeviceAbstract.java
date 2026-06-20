@@ -9,7 +9,6 @@ import android.provider.Settings;
 
 import androidx.annotation.DrawableRes;
 
-import java.lang.reflect.Method;
 import java.util.Collections;
 
 import disable_battery_optimizations.models.BatteryGuide;
@@ -40,19 +39,19 @@ public abstract class DeviceAbstract implements DeviceBase {
     @Override
     public OptimizationVerificationStatus checkBatteryOptimizationStatus(Context context) {
         if (isActionDozeModeNotNecessary(context)) {
-            LogUtils.d(this.getClass().getSimpleName(), "✅ Doze mode check: VERIFIED (already ignored)");
-            return OptimizationVerificationStatus.VERIFIED;
+            LogUtils.d(this.getClass().getSimpleName(), "✅ Doze mode check: UNRESTRICTED (already ignored)");
+            return OptimizationVerificationStatus.UNRESTRICTED;
         }
-        
+
         if (PrefUtils.hasKey(context, PrefKeys.IS_BATTERY_OPTIMIZATION_ACCEPTED)) {
             if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
-                LogUtils.d(this.getClass().getSimpleName(), "✅ Doze mode check: USER_CONFIRMED (from prefs)");
-                return OptimizationVerificationStatus.USER_CONFIRMED;
+                LogUtils.d(this.getClass().getSimpleName(), "✅ Doze mode check: UNRESTRICTED (user confirmed)");
+                return OptimizationVerificationStatus.UNRESTRICTED;
             }
         }
-        
-        LogUtils.d(this.getClass().getSimpleName(), "❌ Doze mode check: FAILED");
-        return OptimizationVerificationStatus.FAILED;
+
+        LogUtils.d(this.getClass().getSimpleName(), "❌ Doze mode check: RESTRICTED");
+        return OptimizationVerificationStatus.RESTRICTED;
     }
 
     @Override
@@ -65,8 +64,8 @@ public abstract class DeviceAbstract implements DeviceBase {
         // Check user preference
         if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_AUTO_START_ACCEPTED)) {
             if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_AUTO_START_ACCEPTED, false)) {
-                LogUtils.d(this.getClass().getSimpleName(), "✅ Auto-start check: USER_CONFIRMED (from prefs)");
-                return OptimizationVerificationStatus.USER_CONFIRMED;
+                LogUtils.d(this.getClass().getSimpleName(), "✅ Auto-start check: UNRESTRICTED (user confirmed)");
+                return OptimizationVerificationStatus.UNRESTRICTED;
             }
         }
 
@@ -77,44 +76,29 @@ public abstract class DeviceAbstract implements DeviceBase {
 
     @Override
     public OptimizationVerificationStatus checkBackgroundRestrictionStatus(Context context) {
-        // Android 12+ (API 31) check using reflection to avoid compile issues in some environments
-        if (Build.VERSION.SDK_INT >= 31) { // Build.VERSION_CODES.S
-            try {
-                ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-                if (am != null) {
-                    Method getLevelMethod = ActivityManager.class.getMethod("getBackgroundRestrictionLevel");
-                    int level = (int) getLevelMethod.invoke(am);
-
-                    final int RESTRICTION_LEVEL_RESTRICTED = 50;
-
-                    if (level >= RESTRICTION_LEVEL_RESTRICTED) {
-                        LogUtils.d(this.getClass().getSimpleName(), "❌ Background restriction check: FAILED (level=" + level + ")");
-                        return OptimizationVerificationStatus.FAILED;
-                    } else {
-                        // Anything less than fully restricted (50) is treated as VERIFIED
-                        LogUtils.d(this.getClass().getSimpleName(), "✅ Background restriction check: VERIFIED (level=" + level + ")");
-                        return OptimizationVerificationStatus.VERIFIED;
-                    }
+        // Android 9+ (API 28): Use official API for definitive answer
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) { // API 28
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                if (!am.isBackgroundRestricted()) {
+                    LogUtils.d(this.getClass().getSimpleName(), "✅ Background restriction check: UNRESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.UNRESTRICTED;
+                } else {
+                    LogUtils.d(this.getClass().getSimpleName(), "❌ Background restriction check: RESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.RESTRICTED;
                 }
-            } catch (Exception e) {
-                LogUtils.e(this.getClass().getSimpleName(), "Reflection failed for getBackgroundRestrictionLevel: " + e.getMessage());
             }
         }
 
-        if (!isActionPowerSavingAvailable(context)) {
-            LogUtils.d(this.getClass().getSimpleName(), "ℹ️ Background restriction check: NOT_SUPPORTED");
-            return OptimizationVerificationStatus.NOT_SUPPORTED;
-        }
-
-        // Check user preference first (most reliable)
+        // Fallback: Check user preference
         if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED)) {
             if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
-                LogUtils.d(this.getClass().getSimpleName(), "✅ Background restriction check: USER_CONFIRMED (from prefs)");
-                return OptimizationVerificationStatus.USER_CONFIRMED;
+                LogUtils.d(this.getClass().getSimpleName(), "✅ Background restriction check: UNRESTRICTED (user confirmed)");
+                return OptimizationVerificationStatus.UNRESTRICTED;
             }
         }
 
-        // Power saving available but user hasn't confirmed yet - requires user action
+        // System API couldn't determine + user hasn't confirmed yet
         LogUtils.d(this.getClass().getSimpleName(), "❓ Background restriction check: UNKNOWN (requires user confirmation)");
         return OptimizationVerificationStatus.UNKNOWN;
     }

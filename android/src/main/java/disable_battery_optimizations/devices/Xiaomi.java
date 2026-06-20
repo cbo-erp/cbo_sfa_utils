@@ -62,39 +62,30 @@ public class Xiaomi extends DeviceAbstract {
 
     @Override
     public OptimizationVerificationStatus checkBackgroundRestrictionStatus(Context context) {
-        // Xiaomi/HyperOS: PowerKeeper is very aggressive, verification via reflection is unreliable
-        // Use conservative approach: trust user preference above all
-
-        if (Build.VERSION.SDK_INT >= 31) {
-            try {
-                ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-                if (am != null) {
-                    Method getLevelMethod = ActivityManager.class.getMethod("getBackgroundRestrictionLevel");
-                    int level = (int) getLevelMethod.invoke(am);
-
-                    final int RESTRICTION_LEVEL_RESTRICTED = 50;
-
-                    // Only if clearly restricted, return FAILED
-                    if (level >= RESTRICTION_LEVEL_RESTRICTED) {
-                        LogUtils.d("Xiaomi", "❌ Background restriction check: FAILED (level=" + level + ")");
-                        return OptimizationVerificationStatus.FAILED;
-                    }
+        // Step 1: Official API gives definitive answer (API 28+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                if (!am.isBackgroundRestricted()) {
+                    LogUtils.d("Xiaomi", "✅ Background restriction check: UNRESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.UNRESTRICTED;
+                } else {
+                    LogUtils.d("Xiaomi", "❌ Background restriction check: RESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.RESTRICTED;
                 }
-            } catch (Exception e) {
-                LogUtils.e("Xiaomi", "Reflection failed for getBackgroundRestrictionLevel: " + e.getMessage());
             }
         }
 
-        // Xiaomi: Always trust user preference (most reliable)
+        // Step 2: Fallback to user preference
         if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED)) {
             if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
-                LogUtils.d("Xiaomi", "✅ Background restriction check: USER_CONFIRMED (from prefs)");
-                return OptimizationVerificationStatus.USER_CONFIRMED;
+                LogUtils.d("Xiaomi", "✅ Background restriction check: UNRESTRICTED (user confirmed)");
+                return OptimizationVerificationStatus.UNRESTRICTED;
             }
         }
 
-        // PowerKeeper requires user confirmation - can't verify automatically
-        LogUtils.d("Xiaomi", "❓ Background restriction check: UNKNOWN (PowerKeeper requires user confirmation)");
+        // System API couldn't determine + user hasn't confirmed yet
+        LogUtils.d("Xiaomi", "❓ Background restriction check: UNKNOWN (requires user confirmation)");
         return OptimizationVerificationStatus.UNKNOWN;
     }
 

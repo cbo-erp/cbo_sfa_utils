@@ -8,7 +8,6 @@ import android.os.Build;
 
 import com.cbo.sfa_utils.R;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -62,39 +61,30 @@ public class Vivo extends DeviceAbstract {
 
     @Override
     public OptimizationVerificationStatus checkBackgroundRestrictionStatus(Context context) {
-        // Vivo/Funtouch OS: Background optimization verification is explicitly unreliable
-        // Rely entirely on user preference
-
-        // Only check reflection as absolute last resort
-        if (Build.VERSION.SDK_INT >= 31) {
-            try {
-                ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-                if (am != null) {
-                    Method getLevelMethod = ActivityManager.class.getMethod("getBackgroundRestrictionLevel");
-                    int level = (int) getLevelMethod.invoke(am);
-
-                    final int RESTRICTION_LEVEL_RESTRICTED = 50;
-
-                    if (level >= RESTRICTION_LEVEL_RESTRICTED) {
-                        LogUtils.d("Vivo", "❌ Background restriction check: FAILED (level=" + level + ")");
-                        return OptimizationVerificationStatus.FAILED;
-                    }
+        // Step 1: Official API gives definitive answer (API 28+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                if (!am.isBackgroundRestricted()) {
+                    LogUtils.d("Vivo", "✅ Background restriction check: UNRESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.UNRESTRICTED;
+                } else {
+                    LogUtils.d("Vivo", "❌ Background restriction check: RESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.RESTRICTED;
                 }
-            } catch (Exception e) {
-                LogUtils.e("Vivo", "Reflection failed for getBackgroundRestrictionLevel: " + e.getMessage());
             }
         }
 
-        // Vivo: Always trust user preference (Funtouch OS is unpredictable)
+        // Step 2: Fallback to user preference
         if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED)) {
             if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
-                LogUtils.d("Vivo", "✅ Background restriction check: USER_CONFIRMED (from prefs)");
-                return OptimizationVerificationStatus.USER_CONFIRMED;
+                LogUtils.d("Vivo", "✅ Background restriction check: UNRESTRICTED (user confirmed)");
+                return OptimizationVerificationStatus.UNRESTRICTED;
             }
         }
 
-        // Funtouch OS requires user confirmation - can't verify automatically
-        LogUtils.d("Vivo", "❓ Background restriction check: UNKNOWN (Funtouch OS requires user confirmation)");
+        // System API couldn't determine + user hasn't confirmed yet
+        LogUtils.d("Vivo", "❓ Background restriction check: UNKNOWN (requires user confirmation)");
         return OptimizationVerificationStatus.UNKNOWN;
     }
 

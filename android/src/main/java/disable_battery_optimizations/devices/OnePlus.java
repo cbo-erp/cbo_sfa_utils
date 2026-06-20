@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -53,57 +52,30 @@ public class OnePlus extends DeviceAbstract {
 
     @Override
     public OptimizationVerificationStatus checkBackgroundRestrictionStatus(Context context) {
-        // OnePlus: Handles differently on Android 12+ vs earlier versions
-
-        if (Build.VERSION.SDK_INT >= 31) {
-            // Android 12+: OnePlus battery manager unreliable, use user preference
-            if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED)) {
-                if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
-                    LogUtils.d("OnePlus", "✅ Background restriction check: USER_CONFIRMED (from prefs, Android 12+)");
-                    return OptimizationVerificationStatus.USER_CONFIRMED;
-                }
-            }
-
-            if (getActionPowerSaving(context) != null) {
-                LogUtils.d("OnePlus", "❓ Background restriction check: UNKNOWN (Android 12+ requires manual confirmation)");
-                return OptimizationVerificationStatus.UNKNOWN;
-            }
-
-            LogUtils.d("OnePlus", "ℹ️ Background restriction check: NOT_SUPPORTED");
-            return OptimizationVerificationStatus.NOT_SUPPORTED;
-        }
-
-        // Pre-Android 12: Can verify via reflection
-        try {
+        // Step 1: Official API gives definitive answer (API 28+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
             if (am != null) {
-                Method getLevelMethod = ActivityManager.class.getMethod("getBackgroundRestrictionLevel");
-                int level = (int) getLevelMethod.invoke(am);
-
-                final int RESTRICTION_LEVEL_RESTRICTED = 50;
-
-                if (level >= RESTRICTION_LEVEL_RESTRICTED) {
-                    LogUtils.d("OnePlus", "❌ Background restriction check: FAILED (level=" + level + ")");
-                    return OptimizationVerificationStatus.FAILED;
+                if (!am.isBackgroundRestricted()) {
+                    LogUtils.d("OnePlus", "✅ Background restriction check: UNRESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.UNRESTRICTED;
                 } else {
-                    LogUtils.d("OnePlus", "✅ Background restriction check: VERIFIED (level=" + level + ")");
-                    return OptimizationVerificationStatus.VERIFIED;
+                    LogUtils.d("OnePlus", "❌ Background restriction check: RESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.RESTRICTED;
                 }
             }
-        } catch (Exception e) {
-            LogUtils.e("OnePlus", "Reflection failed for getBackgroundRestrictionLevel: " + e.getMessage());
         }
 
-        // Fallback to user preference
+        // Step 2: Fallback to user preference
         if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED)) {
             if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
-                LogUtils.d("OnePlus", "✅ Background restriction check: USER_CONFIRMED (from prefs)");
-                return OptimizationVerificationStatus.USER_CONFIRMED;
+                LogUtils.d("OnePlus", "✅ Background restriction check: UNRESTRICTED (user confirmed)");
+                return OptimizationVerificationStatus.UNRESTRICTED;
             }
         }
 
-        // Can't verify automatically - requires user confirmation
-        LogUtils.d("OnePlus", "❓ Background restriction check: UNKNOWN");
+        // System API couldn't determine + user hasn't confirmed yet
+        LogUtils.d("OnePlus", "❓ Background restriction check: UNKNOWN (requires user confirmation)");
         return OptimizationVerificationStatus.UNKNOWN;
     }
 

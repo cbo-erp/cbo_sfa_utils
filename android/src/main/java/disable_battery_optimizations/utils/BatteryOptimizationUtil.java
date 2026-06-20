@@ -26,7 +26,7 @@ public class BatteryOptimizationUtil {
         DeviceBase device = DevicesManager.getDevice(context);
         if (device != null) {
             OptimizationVerificationStatus status = device.checkBatteryOptimizationStatus(context);
-            return status == OptimizationVerificationStatus.VERIFIED || status == OptimizationVerificationStatus.USER_CONFIRMED;
+            return status == OptimizationVerificationStatus.UNRESTRICTED;
         }
 
         if (Build.VERSION.SDK_INT < 23) {
