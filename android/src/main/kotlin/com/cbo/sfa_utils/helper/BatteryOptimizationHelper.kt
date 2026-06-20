@@ -56,13 +56,11 @@ object BatteryOptimizationHelper {
      * Must be explicitly disabled for background work.
      * Only skip if VERIFIED (actually disabled) or USER_CONFIRMED (manual device, user visited settings).
      * If NOT_SUPPORTED on pre-Android 6, that's OK (no Doze mode).
+     *
+     * Delegates to BatteryOptimizationManager which handles both OEM-specific and stock Android paths.
      */
     fun isBatteryOptimizationDisabled(context: Context): Boolean {
-        val manager = BatteryOptimizationManager.getInstance(context)
-        val status = manager.currentDevice?.checkBatteryOptimizationStatus(context)
-                ?: return false
-        return status == OptimizationVerificationStatus.VERIFIED ||
-               status == OptimizationVerificationStatus.USER_CONFIRMED
+        return BatteryOptimizationManager.getInstance(context).isBatteryOptimizationDisabled()
     }
 
     /**
