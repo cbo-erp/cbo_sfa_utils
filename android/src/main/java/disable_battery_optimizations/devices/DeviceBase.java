@@ -4,29 +4,41 @@ import android.content.Context;
 import android.content.Intent;
 import androidx.annotation.DrawableRes;
 
+import disable_battery_optimizations.models.BatteryGuide;
+import disable_battery_optimizations.models.DeviceCapabilities;
+import disable_battery_optimizations.models.OptimizationVerificationStatus;
 import disable_battery_optimizations.utils.Manufacturer;
 
 public interface DeviceBase {
     boolean isThatRom();
     Manufacturer getDeviceManufacturer();
+    
+    DeviceCapabilities getCapabilities(Context context);
+    
+    // Status Checks (Independent APIs)
+    OptimizationVerificationStatus checkBatteryOptimizationStatus(Context context);
+    OptimizationVerificationStatus checkAutoStartStatus(Context context);
+    OptimizationVerificationStatus checkBackgroundRestrictionStatus(Context context);
+    
+    // Existence Checks
     boolean isActionPowerSavingAvailable(Context context);
     boolean isActionAutoStartAvailable(Context context);
     boolean isActionNotificationAvailable(Context context);
-    boolean needToUseAlongwithActionDoseMode();
+    
+    // Intent Getters
     Intent getActionPowerSaving(Context context);
     Intent getActionAutoStart(Context context);
-    // FIXME IS IT REALY NEEDED ? ==> REPLACE BY OTHER FUNCTION ?
     Intent getActionNotification(Context context);
-    // TODO ADD FOR MEMORY OPTIMIZATION : https://github.com/00aj99/CRomAppWhitelist
+    
+    // Guides
+    BatteryGuide getPowerSavingGuide(Context context);
+    BatteryGuide getAutoStartGuide(Context context);
+    
     String getExtraDebugInformations(Context context);
 
-    /**
-     * Function common in all devices
-     * @param context the current context
-     * @return the Intent to open the doze mode settings
-     */
     Intent getActionDozeMode(Context context);
     boolean isActionDozeModeNotNecessary(Context context);
+
     @DrawableRes int getHelpImagePowerSaving();
     @DrawableRes int getHelpImageAutoStart();
     @DrawableRes int getHelpImageNotification();

@@ -1,5 +1,6 @@
 package disable_battery_optimizations.devices;
 
+import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -7,29 +8,35 @@ import android.os.Build;
 
 import com.cbo.sfa_utils.R;
 
+import java.util.Arrays;
+import java.util.Collections;
+
+import disable_battery_optimizations.models.BatteryGuide;
+import disable_battery_optimizations.models.DeviceCapabilities;
+import disable_battery_optimizations.models.OptimizationVerificationStatus;
 import disable_battery_optimizations.utils.ActionsUtils;
+import disable_battery_optimizations.utils.LogUtils;
 import disable_battery_optimizations.utils.Manufacturer;
+import disable_battery_optimizations.utils.PrefKeys;
+import disable_battery_optimizations.utils.PrefUtils;
 
 public class Vivo extends DeviceAbstract {
-// TODO multiple intent in a same actions !
-    // Starting: Intent { cmp=com.vivo.permissionmanager/.activity.BgStartUpManagerActivity }
-    //java.lang.SecurityException: Permission Denial: starting Intent { flg=0x10000000 cmp=com.vivo.permissionmanager/.activity.BgStartUpManagerActivity } from null (pid=28141, uid=2000) not exported from uid 1000
 
-    private final String p1 = "com.iqoo.secure";
-    private final String p1c1 = "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity";
-    private final String p1c2 = "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager";
-
-    private final String p2 = "com.vivo.permissionmanager";
-    private final String p2c1 = "com.vivo.permissionmanager.activity.BgStartUpManagerActivity";
-
-    private static final ComponentName[] VIVO_AUTOSTART = {new ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"),
+    private static final ComponentName[] AUTOSTART = {
+            new ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"),
             new ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager"),
-            new ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity")};
+            new ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"),
+            new ComponentName("com.vivo.abe", "com.vivo.applicationbehaviorengine.ui.ExcessivePowerManagerActivity"),
+            new ComponentName("com.vivo.powermanager", "com.vivo.powermanager.activity.BgStartUpManagerActivity"),
+            new ComponentName("com.iqoo.secure", "com.iqoo.secure.MainGuideActivity")
+    };
 
-    private static final ComponentName[] VIVO_POWER_SAVE = {new ComponentName("com.vivo.abe", "com.vivo.applicationbehaviorengine.ui.ExcessivePowerManagerActivity")};
+    private static final ComponentName[] POWER_SAVE = {
+            new ComponentName("com.vivo.abe", "com.vivo.applicationbehaviorengine.ui.ExcessivePowerManagerActivity"),
+            new ComponentName("com.vivo.powermanager", "com.vivo.powermanager.activity.PowerSavingActivity"),
+            new ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity")
+    };
 
-    // "com.vivo.abe", "com.vivo.applicationbehaviorengine.ui.ExcessivePowerManagerActivity"
-    //com.iqoo.secure.MainGuideActivity ??
     @Override
     public boolean isThatRom() {
         return Build.BRAND.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
@@ -43,76 +50,109 @@ public class Vivo extends DeviceAbstract {
     }
 
     @Override
-    public boolean isActionPowerSavingAvailable(Context context) {
-        return getActionPowerSaving(context) != null;
+    public DeviceCapabilities getCapabilities(Context context) {
+        return new DeviceCapabilities.Builder()
+                .setSupportsDoze(true)
+                .setSupportsAutoStart(true)
+                .setCanVerifyDoze(false) // Vivo verification is unreliable
+                .setRequiresManualConfirmation(true)
+                .build();
     }
 
     @Override
-    public boolean isActionAutoStartAvailable(Context context) {
-        return getActionAutoStart(context) != null;
-    }
+    public OptimizationVerificationStatus checkBackgroundRestrictionStatus(Context context) {
+        // Step 1: Official API gives definitive answer (API 28+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                if (!am.isBackgroundRestricted()) {
+                    LogUtils.d("Vivo", "✅ Background restriction check: UNRESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.UNRESTRICTED;
+                } else {
+                    LogUtils.d("Vivo", "❌ Background restriction check: RESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.RESTRICTED;
+                }
+            }
+        }
 
-    @Override
-    public boolean isActionNotificationAvailable(Context context) {
-        return false;
+        // Step 2: Fallback to user preference
+        if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED)) {
+            if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
+                LogUtils.d("Vivo", "✅ Background restriction check: UNRESTRICTED (user confirmed)");
+                return OptimizationVerificationStatus.UNRESTRICTED;
+            }
+        }
+
+        // System API couldn't determine + user hasn't confirmed yet
+        LogUtils.d("Vivo", "❓ Background restriction check: UNKNOWN (requires user confirmation)");
+        return OptimizationVerificationStatus.UNKNOWN;
     }
 
     @Override
     public Intent getActionPowerSaving(Context context) {
-        Intent intent = null;
-        for (ComponentName component : VIVO_POWER_SAVE) {
-            if (ActionsUtils.isIntentAvailable(context, component)) {
-                intent = ActionsUtils.createIntent();
-                intent.setComponent(component);
-                break;
-            }
-        }
-        return intent;
+        return ActionsUtils.firstAvailableIntent(context, Arrays.asList(
+                ActionsUtils.createIntent().setComponent(POWER_SAVE[0]),
+                ActionsUtils.createIntent().setComponent(POWER_SAVE[1]),
+                ActionsUtils.createIntent().setComponent(POWER_SAVE[2]),
+                ActionsUtils.openApplicationInfo(context)
+        ));
     }
 
     @Override
     public Intent getActionAutoStart(Context context) {
-        Intent intent = null;
-        for (ComponentName component : VIVO_AUTOSTART) {
-            if (ActionsUtils.isIntentAvailable(context, component)) {
-                intent = ActionsUtils.createIntent();
-                intent.setComponent(component);
-                break;
-            }
-        }
-        return intent;
+        return ActionsUtils.firstAvailableIntent(context, Arrays.asList(
+                ActionsUtils.createIntent().setComponent(AUTOSTART[0]),
+                ActionsUtils.createIntent().setComponent(AUTOSTART[1]),
+                ActionsUtils.createIntent().setComponent(AUTOSTART[2]),
+                ActionsUtils.createIntent().setComponent(AUTOSTART[3]),
+                ActionsUtils.createIntent().setComponent(AUTOSTART[4]),
+                ActionsUtils.createIntent().setComponent(AUTOSTART[5])
+        ));
     }
+
+    @Override
+    public BatteryGuide getPowerSavingGuide(Context context) {
+        String appName = getAppName(context);
+
+        return new BatteryGuide(
+                "Vivo Battery Management",
+                "Enable high background power usage and disable restrictions for " + appName + ".",
+                Arrays.asList(
+                        "1. Go to Battery settings",
+                        "2. Select 'Background Power Consumption Management'",
+                        "3. Find '" + appName + "' and select 'High Background Power Consumption'"
+                ),
+                0,
+                null,
+                "Settings might vary across Funtouch OS versions."
+        );
+    }
+    @Override
+    public BatteryGuide getAutoStartGuide(Context context) {
+        String appName = getAppName(context);
+
+        return new BatteryGuide(
+                "Vivo Auto Start",
+                "Allow the app to start automatically.",
+                Arrays.asList(
+                        "1. Go to Settings -> More Settings -> Applications",
+                        "2. Select 'Autostart'",
+                        "3. Toggle the switch for '" + appName + "'"
+                ),
+                0,
+                null,
+                null
+        );
+    }
+
+    @Override
+    public String getExtraDebugInformations(Context context) {
+        return "Vivo Model: " + Build.MODEL + " ROM: " + Build.DISPLAY;
+    }
+
 
     @Override
     public Intent getActionNotification(Context context) {
         return null;
     }
-
-    @Override
-    public String getExtraDebugInformations(Context context) {
-        return null;
-    }
-
-    @Override
-    public int getHelpImagePowerSaving() {
-        return R.drawable.vivo_power_save;
-    }
-
-    @Override
-    public int getHelpImageAutoStart() {
-        return R.drawable.vivo_auto_start;
-    }
-/*
-    @Override
-    public List<ComponentName> getAutoStartSettings(Context context) {
-        List<ComponentName> componentNames = new ArrayList<>();
-        if(ActionsUtils.isPackageExist(context, p1)){
-            componentNames.add(new ComponentName(p1,p1c1));
-            componentNames.add(new ComponentName(p1,p1c2));
-        }
-        if(ActionsUtils.isPackageExist(context,p2)){
-            componentNames.add(new ComponentName(p2,p2c1));
-        }
-        return componentNames;
-    }*/
 }

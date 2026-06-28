@@ -1,41 +1,47 @@
 package disable_battery_optimizations.devices;
 
+import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-import com.cbo.sfa_utils.R;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
 
+import disable_battery_optimizations.models.BatteryGuide;
+import disable_battery_optimizations.models.DeviceCapabilities;
+import disable_battery_optimizations.models.OptimizationVerificationStatus;
 import disable_battery_optimizations.utils.ActionsUtils;
+import disable_battery_optimizations.utils.LogUtils;
 import disable_battery_optimizations.utils.Manufacturer;
-import disable_battery_optimizations.utils.SystemUtils;
+import disable_battery_optimizations.utils.PrefKeys;
+import disable_battery_optimizations.utils.PrefUtils;
 
 public class Xiaomi extends DeviceAbstract {
 
+    private static final ComponentName[] AUTO_START = {
+            new ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+            new ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartMainActivity")
+    };
 
-    // TODO TEST new Intent().setComponent(ComponentName("com.miui.securitycenter", "com.miui.powercenter.PowerSettings"))
-    private static final String MIUI_ACTION_PERMS = "miui.intent.action.APP_PERM_EDITOR";
-    private static final String MIUI_ACTION_PERMS_EXTRA = "extra_pkgname";
+    private static final ComponentName[] POWER_SAVE = {
+            new ComponentName("com.miui.powerkeeper", "com.miui.powerkeeper.ui.HiddenAppsConfigActivity"),
+            new ComponentName("com.miui.securitycenter", "com.miui.powercenter.PowerSettings"),
+            new ComponentName("com.miui.powerkeeper", "com.miui.powerkeeper.ui.HiddenAppsContainerManagementActivity")
+    };
 
-    // ONE SPECIFIQUE APP
-    private static final String[] MIUI_ACTION_AUTOSTART = {"com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"};
-    private static final String[] MIUI_ACTION_POWERSAVE = {"com.miui.powerkeeper", "com.miui.powerkeeper.ui.HiddenAppsConfigActivity"};
-    // OPEN DEFAULT LIST BATTERYSAVER
-    private static final String MIUI_ACTION_POWER_SAVE_LIST = "miui.intent.action.POWER_HIDE_MODE_APP_LIST";
-    private static final String MIUI_ACTION_POWER_SAVE_EXTRA_NAME = "package_name";
-    private static final String MIUI_ACTION_POWER_SAVE_EXTRA_LABEL = "package_label";
-    //private static final String MIUI_ACTION_AUTOSTART = "miui.intent.action.OP_AUTO_START";
+    private static final String ACTION_POWER_HIDE_LIST = "miui.intent.action.POWER_HIDE_MODE_APP_LIST";
+    private static final String ACTION_OP_AUTO_START = "miui.intent.action.OP_AUTO_START";
 
-    private static final ComponentName[] MIUI_AUTO_START = {new ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")};
 
-    private static final ComponentName[] MIUI_POWER_SAVE = {new ComponentName("com.miui.powerkeeper", "com.miui.powerkeeper.ui.HiddenAppsConfigActivity")};
 
     @Override
     public boolean isThatRom() {
-        return Build.BRAND.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.MANUFACTURER.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.FINGERPRINT.toLowerCase().contains(getDeviceManufacturer().toString());
+        return Build.BRAND.equalsIgnoreCase("xiaomi") || Build.MANUFACTURER.equalsIgnoreCase("xiaomi") ||
+                Build.BRAND.equalsIgnoreCase("redmi") || Build.MANUFACTURER.equalsIgnoreCase("redmi") ||
+                Build.BRAND.equalsIgnoreCase("poco") || Build.MANUFACTURER.equalsIgnoreCase("poco");
     }
 
     @Override
@@ -44,135 +50,114 @@ public class Xiaomi extends DeviceAbstract {
     }
 
     @Override
-    public boolean isActionPowerSavingAvailable(Context context) {
-        return getActionPowerSaving(context) != null;
+    public DeviceCapabilities getCapabilities(Context context) {
+        return new DeviceCapabilities.Builder()
+                .setSupportsDoze(true)
+                .setSupportsAutoStart(true)
+                .setSupportsDeepOptimization(true)
+                .setCanVerifyDoze(false)
+                .setRequiresManualConfirmation(true)
+                .build();
     }
 
     @Override
-    public boolean isActionAutoStartAvailable(Context context) {
-        return getActionAutoStart(context) != null;
-    }
+    public OptimizationVerificationStatus checkBackgroundRestrictionStatus(Context context) {
+        // Step 1: Official API gives definitive answer (API 28+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                if (!am.isBackgroundRestricted()) {
+                    LogUtils.d("Xiaomi", "✅ Background restriction check: UNRESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.UNRESTRICTED;
+                } else {
+                    LogUtils.d("Xiaomi", "❌ Background restriction check: RESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.RESTRICTED;
+                }
+            }
+        }
 
-    @Override
-    public boolean isActionNotificationAvailable(Context context) {
-        return false;
+        // Step 2: Fallback to user preference
+        if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED)) {
+            if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
+                LogUtils.d("Xiaomi", "✅ Background restriction check: UNRESTRICTED (user confirmed)");
+                return OptimizationVerificationStatus.UNRESTRICTED;
+            }
+        }
+
+        // System API couldn't determine + user hasn't confirmed yet
+        LogUtils.d("Xiaomi", "❓ Background restriction check: UNKNOWN (requires user confirmation)");
+        return OptimizationVerificationStatus.UNKNOWN;
     }
 
     @Override
     public Intent getActionPowerSaving(Context context) {
-        Intent intent = null;
-        for (ComponentName component : MIUI_POWER_SAVE) {
-            if (ActionsUtils.isIntentAvailable(context, component)) {
-                intent = ActionsUtils.createIntent();
-                intent.setComponent(component);
-                break;
+        Intent intent = ActionsUtils.firstAvailableIntent(context, Arrays.asList(
+                ActionsUtils.createIntent().setComponent(POWER_SAVE[0]),
+                ActionsUtils.createIntent().setComponent(POWER_SAVE[1]),
+                ActionsUtils.createIntent().setComponent(POWER_SAVE[2])
+        ));
+
+        if (intent == null) {
+            intent = ActionsUtils.createIntent().setAction(ACTION_POWER_HIDE_LIST);
+            intent.putExtra("package_name", context.getPackageName());
+            intent.putExtra("package_label", getAppName(context));
+            if (!ActionsUtils.isIntentAvailable(context, intent)) {
+                intent = null;
             }
         }
-        if (intent == null && isActionAutoStartAvailable(context)) {
-            intent = SystemUtils.getAppInfoIntent(context.getPackageName());
-        }
-        return intent;
+
+        return intent != null ? intent : ActionsUtils.openApplicationInfo(context);
     }
 
     @Override
     public Intent getActionAutoStart(Context context) {
-        Intent intent = null;
-        for (ComponentName component : MIUI_AUTO_START) {
-            if (ActionsUtils.isIntentAvailable(context, component)) {
-                intent = ActionsUtils.createIntent();
-                intent.setComponent(component);
-                break;
-            }
-        }
-        return intent;
+        return ActionsUtils.firstAvailableIntent(context, Arrays.asList(
+                ActionsUtils.createIntent().setComponent(AUTO_START[0]),
+                ActionsUtils.createIntent().setComponent(AUTO_START[1]),
+                ActionsUtils.createIntent().setAction(ACTION_OP_AUTO_START).addCategory(Intent.CATEGORY_DEFAULT)
+        ));
     }
 
     @Override
-    public Intent getActionNotification(Context context) {
-        return null;
+    public BatteryGuide getPowerSavingGuide(Context context) {
+        String appName = getAppName(context);
+
+        return new BatteryGuide(
+                "Xiaomi Battery Settings",
+                "Ensure reliable background tracking on HyperOS/MIUI.",
+                Arrays.asList(
+                        "1. Open App Info for '" + appName + "'",
+                        "2. Tap on 'Battery saver'",
+                        "3. Select 'No restrictions'"
+                ),
+                0,
+                null,
+                "Note: Standard Android optimization settings are often overridden by Xiaomi's PowerKeeper."
+        );
+    }
+
+    @Override
+    public BatteryGuide getAutoStartGuide(Context context) {
+        String appName = getAppName(context);
+
+        return new BatteryGuide(
+                "Xiaomi Auto Start",
+                "Allow the app to start automatically.",
+                Collections.singletonList(
+                        "1. Toggle 'Autostart' for '" + appName + "' to ON in the App Info screen"
+                ),
+                0,
+                null,
+                null
+        );
     }
 
     @Override
     public String getExtraDebugInformations(Context context) {
-        return null;
+        return "Xiaomi/HyperOS Model: " + Build.MODEL;
     }
 
-    @Override
-    public int getHelpImagePowerSaving() {
-        return R.drawable.xiaomi;
-    }
-
-    @Override
-    public int getHelpImageAutoStart() {
-        return R.drawable.xiaomi;
-    }
-/*
-    // TODO CHECK IF GETPACKAGENAME IS NAME OF LIB OR APP
-    @Override
-    public List<Intent> getAutoStartSettings(Context context) {
-        List<Intent> intents = new ArrayList<>();
-        intents.add(new Intent("miui.intent.action.POWER_HIDE_MODE_APP_LIST").addCategory(Intent.CATEGORY_DEFAULT));
-        //com.miui.powerkeeper/com.miui.powerkeeper.ui.HiddenAppsContainerManagementActivity
-        intents.add(new Intent("miui.intent.action.OP_AUTO_START").addCategory(Intent.CATEGORY_DEFAULT));
-        //com.miui.securitycenter/com.miui.permcenter.autostart.AutoStartManagementActivity
-        return intents;
-    }
-*/
-    /*
-    * new Intent("miui.intent.action.POWER_HIDE_MODE_APP_LIST").addCategory(Intent.CATEGORY_DEFAULT)
-new Intent("miui.intent.action.OP_AUTO_START").addCategory(Intent.CATEGORY_DEFAULT)
-    * */
-
-    /*
-    private static int getMiuiVersion() {
-        String version = SystemUtils.getSystemProperty("ro.miui.ui.version.name");
-        if (version != null) {
-            try {
-                return Integer.parseInt(version.substring(1));
-            } catch (Exception e) {
-                Log.e(Xiaomi.class.getName(), "get miui version code error, version : " + version);
-                Log.e(Xiaomi.class.getName(), Log.getStackTraceString(e));
-            }
-        }
-        return -1;
-    }
-
-    public Intent miui_V5(Context context) {
-        String packageName = context.getPackageName();
-        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-        Uri uri = Uri.fromParts("package" , packageName, null);
-        intent.setData(uri);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        return intent;
-    }
-
-
-    public Intent miui_V6(Context context) {
-        Intent intent = new Intent(MIUI_ACTION);
-        intent.setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.AppPermissionsEditorActivity");
-        intent.putExtra(MIUI_EXTRA, context.getPackageName());
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        return intent;
-    }
-
-    // MIUI V7
-
-    private Intent miui_V7(Context context) {
-        Intent intent = new Intent(MIUI_ACTION);
-        intent.setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.AppPermissionsEditorActivity");
-        intent.putExtra(MIUI_EXTRA, context.getPackageName());
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        return intent;
-    }
-
-    //MIUI V8
-
-    private Intent miui_V8(Context context) {
-        Intent intent = new Intent(MIUI_ACTION);
-        intent.setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.PermissionsEditorActivity");
-        intent.putExtra(MIUI_EXTRA, context.getPackageName());
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        return intent;
-    }
-*/
+    @Override public int getHelpImagePowerSaving() { return 0; }
+    @Override public int getHelpImageAutoStart() { return 0; }
+    @Override public Intent getActionNotification(Context context) { return null; }
 }

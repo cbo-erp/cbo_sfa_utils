@@ -1,39 +1,27 @@
 package disable_battery_optimizations.devices;
 
-import android.content.ComponentName;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-import com.cbo.sfa_utils.R;
+import java.util.Arrays;
 
+import disable_battery_optimizations.models.BatteryGuide;
+import disable_battery_optimizations.models.DeviceCapabilities;
+import disable_battery_optimizations.models.OptimizationVerificationStatus;
 import disable_battery_optimizations.utils.ActionsUtils;
+import disable_battery_optimizations.utils.LogUtils;
 import disable_battery_optimizations.utils.Manufacturer;
+import disable_battery_optimizations.utils.PrefKeys;
+import disable_battery_optimizations.utils.PrefUtils;
 
 public class Samsung extends DeviceAbstract {
-    // crash "com.samsung.android.lool","com.samsung.android.sm.ui.battery.AppSleepListActivity"
-    private static final String SAMSUNG_SYSTEMMANAGER_POWERSAVING_ACTION = "com.samsung.android.sm.ACTION_BATTERY";
-    private static final String SAMSUNG_SYSTEMMANAGER_NOTIFICATION_ACTION = "com.samsung.android.sm.ACTION_SM_NOTIFICATION_SETTING";
-    // ANDROID 7.0/8.0
-    private static final String SAMSUNG_SYSTEMMANAGER_POWERSAVING_PACKAGE_V3 = "com.samsung.android.lool";
-    private static final String SAMSUNG_SYSTEMMANAGER_POWERSAVING_PACKAGE_V3_ACTIVITY = "com.samsung.android.sm.ui.battery.BatteryActivity";
-
-    // ANDROID 6.0
-    private static final String SAMSUNG_SYSTEMMANAGER_POWERSAVING_PACKAGE_V2 = "com.samsung.android.sm_cn";
-    private static final String SAMSUNG_SYSTEMMANAGER_POWERSAVING_PACKAGE_V2_ACTIVITY = "com.samsung.android.sm.ui.battery.BatteryActivity";
-
-    // ANDROID 5.0/5.1
-    private static final String SAMSUNG_SYSTEMMANAGER_POWERSAVING_PACKAGE_V1 = "com.samsung.android.sm";
-    private static final String SAMSUNG_SYSTEMMANAGER_POWERSAVING_PACKAGE_V1_ACTIVITY = "com.samsung.android.sm.ui.battery.BatteryActivity";
-
-    private static final String SAMSUNG_SYSTEMMANAGER_AUTOSTART_PACKAGE_V1 = "com.samsung.memorymanager";
-    private static final String SAMSUNG_SYSTEMMANAGER_AUTOSTART_PACKAGE_V1_ACTIVITY = "com.samsung.memorymanager.RamActivity";
 
     @Override
     public boolean isThatRom() {
-        return Build.BRAND.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.MANUFACTURER.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.FINGERPRINT.toLowerCase().contains(getDeviceManufacturer().toString());
+        return Build.BRAND.equalsIgnoreCase("samsung")
+                || Build.MANUFACTURER.equalsIgnoreCase("samsung");
     }
 
     @Override
@@ -42,78 +30,102 @@ public class Samsung extends DeviceAbstract {
     }
 
     @Override
-    public boolean isActionPowerSavingAvailable(Context context) {
-        // SmartManager is not available before lollipop version
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
+    public BatteryGuide getPowerSavingGuide(Context context) {
+        String appName = getAppName(context);
+
+        if (Build.VERSION.SDK_INT >= 31) { // Android 12+ (OneUI 4+)
+            return new BatteryGuide(
+                    "Samsung Background Settings",
+                    "Allow unrestricted background usage for accurate tracking.",
+                    Arrays.asList(
+                            "1. Open App Info for " + appName,
+                            "2. Tap Battery",
+                            "3. Select Unrestricted"
+                    ),
+                    0,
+                    null,
+                    null
+            );
+        }
+
+        return new BatteryGuide(
+                "Samsung App Battery Settings",
+                "Allow unrestricted background usage for this app.",
+                Arrays.asList(
+                        "1. You're now viewing the App Info page",
+                        "2. Scroll down and tap Battery",
+                        "3. Select Unrestricted (or Unlimited if available)",
+                        "4. Confirm and return to the app"
+                ),
+                0,
+                null,
+                "If Battery option is not visible, your device may not support this setting. Return to continue."
+        );
     }
 
     @Override
-    public boolean isActionAutoStartAvailable(Context context) {
-        return false;
+    public DeviceCapabilities getCapabilities(Context context) {
+        return new DeviceCapabilities.Builder()
+                .setSupportsDoze(true)
+                .setCanVerifyDoze(true)
+                .setSupportsBackgroundRestriction(true)
+                .build();
     }
 
     @Override
-    public boolean isActionNotificationAvailable(Context context) {
-        return false;
-    }
+    public OptimizationVerificationStatus checkBackgroundRestrictionStatus(Context context) {
+        // Samsung: Use official Android API when available (most reliable signal)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) { // API 28
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                if (!am.isBackgroundRestricted()) {
+                    LogUtils.d("Samsung", "✅ Background restriction check: UNRESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.UNRESTRICTED;
+                } else {
+                    LogUtils.d("Samsung", "❌ Background restriction check: RESTRICTED (system confirms)");
+                    return OptimizationVerificationStatus.RESTRICTED;
+                }
+            }
+        }
 
-    @Override
-    public boolean needToUseAlongwithActionDoseMode() {
-        return true;
+        // Fallback: Check user preference (user manually confirmed via OneUI settings)
+        if (PrefUtils.hasKey(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED)) {
+            if ((boolean) PrefUtils.getFromPrefs(context, PrefKeys.IS_MAN_BATTERY_OPTIMIZATION_ACCEPTED, false)) {
+                LogUtils.d("Samsung", "✅ Background restriction check: UNRESTRICTED (user confirmed)");
+                return OptimizationVerificationStatus.UNRESTRICTED;
+            }
+        }
+
+        // System API couldn't determine + user hasn't confirmed yet
+        LogUtils.d("Samsung", "❓ Background restriction check: UNKNOWN (requires user confirmation)");
+        return OptimizationVerificationStatus.UNKNOWN;
     }
 
     @Override
     public Intent getActionPowerSaving(Context context) {
-        Intent intent = ActionsUtils.createIntent();
-        intent.setAction(SAMSUNG_SYSTEMMANAGER_POWERSAVING_ACTION);
-        if (ActionsUtils.isIntentAvailable(context, intent)) {
-            return intent;
+        if (Build.VERSION.SDK_INT >= 31) { // Android 12+ (OneUI 4+)
+            return ActionsUtils.firstAvailableIntent(context, Arrays.asList(
+                    ActionsUtils.createIntent().setAction("com.samsung.android.sm.ACTION_BATTERY"),
+                    ActionsUtils.createIntent().setAction("com.samsung.android.sm.ACTION_DEVICE_MAINTENANCE"),
+                    ActionsUtils.openApplicationInfo(context)
+            ));
+        } else { // Pre-Android 12 (J7, older devices)
+            return ActionsUtils.openApplicationInfo(context);
         }
-        // reset
-        intent = ActionsUtils.createIntent();
-        intent.setComponent(new ComponentName(SAMSUNG_SYSTEMMANAGER_POWERSAVING_PACKAGE_V3,
-                                              SAMSUNG_SYSTEMMANAGER_POWERSAVING_PACKAGE_V3_ACTIVITY));
-        if (ActionsUtils.isIntentAvailable(context, intent)) {
-            return intent;
-        }
+    }
 
-        intent.setComponent(new ComponentName(SAMSUNG_SYSTEMMANAGER_POWERSAVING_PACKAGE_V2,
-                                              SAMSUNG_SYSTEMMANAGER_POWERSAVING_PACKAGE_V2_ACTIVITY));
-        if (ActionsUtils.isIntentAvailable(context, intent)) {
-            return intent;
-        }
-        intent.setComponent(new ComponentName(SAMSUNG_SYSTEMMANAGER_POWERSAVING_PACKAGE_V1,
-                                              SAMSUNG_SYSTEMMANAGER_POWERSAVING_PACKAGE_V1_ACTIVITY));
-        if (ActionsUtils.isIntentAvailable(context, intent)) {
-            return intent;
-        }
+    @Override
+    public Intent getActionAutoStart(Context context) {
         return null;
     }
 
-    // FIXME Currently not working : not available, ITS NOT AUTOSTART ITS MEMORY MANAGER
-    @Override
-    public Intent getActionAutoStart(Context context) {
-        Intent intent = ActionsUtils.createIntent();
-        intent.setComponent(new ComponentName(SAMSUNG_SYSTEMMANAGER_AUTOSTART_PACKAGE_V1,
-                                              SAMSUNG_SYSTEMMANAGER_AUTOSTART_PACKAGE_V1_ACTIVITY));
-        return intent;
-    }
-
-    // FIXME : NOTWORKOING NEED PERMISSIONS SETTINGS OR SOMETHINGS ELSE
     @Override
     public Intent getActionNotification(Context context) {
-        Intent intent = ActionsUtils.createIntent();
-        intent.setAction(SAMSUNG_SYSTEMMANAGER_NOTIFICATION_ACTION);
         return null;
     }
 
     @Override
     public String getExtraDebugInformations(Context context) {
-        return null;
-    }
-
-    @Override
-    public int getHelpImagePowerSaving() {
-        return R.drawable.samsung;
+        return "Samsung Model: " + Build.MODEL + " SDK: " + Build.VERSION.SDK_INT;
     }
 }

@@ -9,21 +9,26 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
-
 import androidx.activity.ComponentActivity;
-
+import disable_battery_optimizations.devices.DeviceBase;
+import disable_battery_optimizations.managers.DevicesManager;
 import disable_battery_optimizations.managers.KillerManager;
+import disable_battery_optimizations.models.OptimizationVerificationStatus;
 import disable_battery_optimizations.ui.DialogKillerManagerBuilder;
 
 public class BatteryOptimizationUtil {
 
     public static Intent getAppSettingsIntent(Context context) {
-        Intent intent = new Intent("android.settings.APPLICATION_DETAILS_SETTINGS");
-        intent.setData(Uri.fromParts("package", context.getApplicationContext().getPackageName(), null));
-        return intent;
+        return ActionsUtils.openApplicationInfo(context);
     }
 
     public static boolean isIgnoringBatteryOptimizations(Context context) {
+        DeviceBase device = DevicesManager.getDevice(context);
+        if (device != null) {
+            OptimizationVerificationStatus status = device.checkBatteryOptimizationStatus(context);
+            return status == OptimizationVerificationStatus.UNRESTRICTED;
+        }
+
         if (Build.VERSION.SDK_INT < 23) {
             return true;
         }
@@ -36,6 +41,14 @@ public class BatteryOptimizationUtil {
     }
 
     public static Intent getIgnoreBatteryOptimizationsIntent(Context context) {
+        DeviceBase device = DevicesManager.getDevice(context);
+        if (device != null) {
+            Intent deviceIntent = device.getActionDozeMode(context);
+            if (deviceIntent != null) {
+                return deviceIntent;
+            }
+        }
+
         if (Build.VERSION.SDK_INT < 23) {
             return null;
         }
@@ -45,38 +58,48 @@ public class BatteryOptimizationUtil {
         return intent.resolveActivity(context.getPackageManager()) == null ? getAppSettingsIntent(context) : intent;
     }
 
-    public static void showBatteryOptimizationDialog(final ComponentActivity context, final KillerManager.Actions action, String titleMessage, final String contentMessage, final OnOptimizationActionCallback callback) {
+    /**
+     * Shows battery optimization dialog with actionable guide text.
+     * 
+     * @param context Current activity
+     * @param action The optimization action (AUTOSTART, POWERSAVING, etc.)
+     * @param titleMessage Custom title for the dialog
+     * @param callback Callback when user accepts or cancels
+     * 
+     * NOTE: This method is typically called by BatteryOptimizationHelper which handles
+     * the actual intent launching via ActivityResultLauncher. The skipInternalLaunch flag
+     * is set to true to prevent double-launching.
+     */
+    public static void showBatteryOptimizationDialog(final ComponentActivity context, final KillerManager.Actions action, String titleMessage,  final OnOptimizationActionCallback callback) {
 
         if (KillerManager.isActionAvailable(context, action)) {
-            if (titleMessage == null) {
+            if (titleMessage == null || titleMessage.isEmpty()) {
                 titleMessage = String.format("Your Device %s %s has additional battery optimization", Build.MANUFACTURER, Build.MODEL);
             }
 
             String finalTitleMessage = titleMessage;
             context.runOnUiThread(() -> {
-
                 new DialogKillerManagerBuilder()
                         .setContext(context)
                         .setDontShowAgain(false)
+                        .setSkipInternalLaunch(true)  // ← Critical: Let BatteryOptimizationHelper handle intent launch
                         .setTitleMessage(finalTitleMessage)
-                        .setContentMessage(contentMessage)
-                        .setPositiveMessage("Ok")
-                        //.setNegativeMessage("Will Give Later")
                         .setOnPositiveCallback(view -> {
+                            LogUtils.d("BatteryOptimizationUtil", "Dialog positive callback triggered");
                             callback.onAccepted();
                         }).setOnNegativeCallback((view) -> {
+                            LogUtils.d("BatteryOptimizationUtil", "Dialog negative callback triggered");
                             callback.onCanceled();
                         }).setAction(action).show();
             });
         } else {
+            LogUtils.d("BatteryOptimizationUtil", "Action not available on this device: " + action);
             callback.onAccepted();
         }
     }
 
     public interface OnOptimizationActionCallback {
         void onAccepted();
-
         void onCanceled();
     }
-
 }

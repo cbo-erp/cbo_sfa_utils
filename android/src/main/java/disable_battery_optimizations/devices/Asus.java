@@ -1,28 +1,27 @@
 package disable_battery_optimizations.devices;
 
-
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-import androidx.annotation.DrawableRes;
 
+import java.util.Arrays;
+import java.util.Collections;
+
+import disable_battery_optimizations.models.BatteryGuide;
+import disable_battery_optimizations.models.DeviceCapabilities;
 import disable_battery_optimizations.utils.ActionsUtils;
 import disable_battery_optimizations.utils.Manufacturer;
 
-import com.cbo.sfa_utils.R;
-
 public class Asus extends DeviceAbstract {
 
-    private static final String ASUS_PACAKGE_MOBILEMANAGER = "com.asus.mobilemanager";
-    private static final String ASUS_ACTIVITY_MOBILEMANAGER_FUNCTION_ACTIVITY = "com.asus.mobilemanager.entry.FunctionActivity";
-    private static final String ASUS_ACTIVITY_MOBILEMANAGER_FUNCTION_AUTOSTART_ACTIVITY = "com.asus.mobilemanager.autostart.AutoStartActivity";
+    private static final String ASUS_PACKAGE_MOBILEMANAGER = "com.asus.mobilemanager";
+    private static final String ASUS_ACTIVITY_FUNCTION = "com.asus.mobilemanager.entry.FunctionActivity";
+    private static final String ASUS_ACTIVITY_AUTOSTART = "com.asus.mobilemanager.autostart.AutoStartActivity";
 
     @Override
     public boolean isThatRom() {
-        return  Build.BRAND.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.MANUFACTURER.equalsIgnoreCase(getDeviceManufacturer().toString()) ||
-                Build.FINGERPRINT.toLowerCase().contains(getDeviceManufacturer().toString());
+        return Build.BRAND.equalsIgnoreCase("asus") || Build.MANUFACTURER.equalsIgnoreCase("asus");
     }
 
     @Override
@@ -31,58 +30,71 @@ public class Asus extends DeviceAbstract {
     }
 
     @Override
-    public boolean isActionPowerSavingAvailable(Context context) {
-        return super.isActionDozeModeNotNecessary(context);
-    }
-
-    @Override
-    public boolean isActionAutoStartAvailable(Context context) {
-        return true;
-    }
-
-    @Override
-    public boolean isActionNotificationAvailable(Context context) {
-        return true;
+    public DeviceCapabilities getCapabilities(Context context) {
+        return new DeviceCapabilities.Builder()
+                .setSupportsDoze(true)
+                .setSupportsAutoStart(true)
+                .setSupportsNotificationOptimization(true)
+                .build();
     }
 
     @Override
     public Intent getActionPowerSaving(Context context) {
-        // Juste need to use the regular battery non optimization
-        // permission =)
         return super.getActionDozeMode(context);
     }
 
     @Override
     public Intent getActionAutoStart(Context context) {
         Intent intent = ActionsUtils.createIntent();
-        intent.putExtra("showNotice",true);
-        intent.setComponent(new ComponentName(ASUS_PACAKGE_MOBILEMANAGER, ASUS_ACTIVITY_MOBILEMANAGER_FUNCTION_AUTOSTART_ACTIVITY));
+        intent.putExtra("showNotice", true);
+        intent.setComponent(new ComponentName(ASUS_PACKAGE_MOBILEMANAGER, ASUS_ACTIVITY_AUTOSTART));
         return intent;
     }
 
     @Override
     public Intent getActionNotification(Context context) {
-        // Need to clic on notifications items
         Intent intent = ActionsUtils.createIntent();
-        intent.putExtra("showNotice",true);
-        intent.setComponent(new ComponentName(ASUS_PACAKGE_MOBILEMANAGER, ASUS_ACTIVITY_MOBILEMANAGER_FUNCTION_ACTIVITY));
+        intent.putExtra("showNotice", true);
+        intent.setComponent(new ComponentName(ASUS_PACKAGE_MOBILEMANAGER, ASUS_ACTIVITY_FUNCTION));
         return intent;
     }
 
     @Override
+    public BatteryGuide getPowerSavingGuide(Context context) {
+        return new BatteryGuide(
+                "Asus Battery Settings",
+                "Ensure the app can run without background restrictions.",
+                Arrays.asList(
+                        "1. Open 'Mobile Manager'",
+                        "2. Tap on 'PowerMaster'",
+                        "3. Select 'Battery-saving options'",
+                        "4. Disable 'Stop apps when screen is locked'"
+                ),
+                0, null, null
+        );
+    }
+
+    @Override
+    public BatteryGuide getAutoStartGuide(Context context) {
+        String appName = getAppName(context);
+
+        return new BatteryGuide(
+                "Asus Auto-start Manager",
+                "Allow the app to start automatically.",
+                Arrays.asList(
+                        "1. Open 'Mobile Manager'",
+                        "2. Tap on 'Auto-start Manager'",
+                        "3. Find '" + appName + "' and toggle it to 'Allow'"
+                ),
+                0,
+                null,
+                null
+        );
+    }
+
+    @Override
     public String getExtraDebugInformations(Context context) {
-        return null;
+        return "Asus Model: " + Build.MODEL;
     }
 
-    @Override
-    @DrawableRes
-    public int getHelpImageAutoStart(){
-        return R.drawable.asus_autostart;
-    }
-
-    @Override
-    @DrawableRes
-    public int getHelpImageNotification(){
-        return R.drawable.asus_notification;
-    }
 }
